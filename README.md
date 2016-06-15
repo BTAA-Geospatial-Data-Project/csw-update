@@ -1,7 +1,7 @@
 # Installation
 If you don't have Pip, [get Pip](https://pip.pypa.io/en/latest/installing.html)!
 
-Either clone the repo or [download as a zip](https://github.com/CIC-Geospatial-Data-Discovery-Project/metadata-resources/archive/master.zip). Once cloned/downloaded and extracted, run this from the `csw_update`:
+Either clone the repo or [download as a zip](https://github.com/CIC-Geospatial-Data-Discovery-Project/csw-update/archive/master.zip. Once cloned/downloaded and extracted, execute this command:
 
     pip install -r requirements.txt
 
@@ -37,3 +37,6 @@ When working with a CSV exported from GeoNetwork, you'll need to either:
 | **Distribution Format**        | NEW_distribution_format  |
 | **Date Published**             | NEW_date_publication     |
 | **Date Revised**               | NEW_date_revision        |
+| **Temporal Extent Start**               | NEW_temporal_start        |
+| **Temporal Extent End**               | NEW_temporal_end        |
+| **Temporal Extent Instant**               | NEW_temporal_instant       |
