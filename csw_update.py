@@ -54,7 +54,7 @@ class UpdateCSW(object):
 
         # for etree.xpath function we can't have an empty namespace (None)
         self.namespaces_no_empty = self.namespaces.copy()
-        self.namespaces_no_empty.pop(None)
+        #self.namespaces_no_empty.pop(None) #see get_namespaces for removal TODO remove _no_empty
 
         # these are the column names that will trigger a change
         self.field_handlers = {"iso19139": {
@@ -152,7 +152,9 @@ class UpdateCSW(object):
 
         n = Namespaces()
         ns = n.get_namespaces(["gco","gmd","gml","gml32","gmx","gts","srv","xlink","dc"])
-        ns[None] = n.get_namespace("gmd")
+
+        #taking out to accommodate lxml 3.5+, let's see what breaks!
+        #ns[None] = n.get_namespace("gmd")
         return ns
 
 
@@ -196,14 +198,39 @@ class UpdateCSW(object):
             return
 
         tree = self.record_etree
-        elem = tree.find(path, namespaces=self.namespaces)
-        if elem is not None:
+
+        original_path = path
+        elem = None
+
+        while elem is None:
+            elem = tree.find(path, namespaces=self.namespaces)
+            if elem is None:
+                log.debug("Did not find \n {p} \n trying next level up.".format(p=path))
+                path = "/".join(path.split("/")[:-1])
+
+        if elem is not None and path == original_path:
+            log.debug("Found the path: \n {p}".format(p=path))
             if elem.text != new_value:
                 elem.text = new_value
                 self.tree_changed = True
             else:
                 log.info("Value for \n {p} \n already set to: {v}".format(p=path.split("/")[-2],v=new_value))
+        elif elem is not None and path != original_path:
+            elements_to_create = [e for e in original_path.split("/") if e not in path]
+            self._create_elements(elem, elements_to_create)
+            log.debug("Recursing to _simple_element_update again now that element should be there.")
+            self._simple_element_update(uuid, new_value, xpath=original_path)
 
+    def _create_elements(self, start_element, list_of_element_names):
+        tree = self.record_etree
+        base_element = start_element
+        for elem_name in list_of_element_names:
+            elem_name_split = elem_name.split(":")
+            base_element = etree.SubElement(base_element,
+                "{ns}".format(ns="{"+self.namespaces[elem_name_split[0]]+"}") + elem_name_split[1],
+                nsmap=self.namespaces)
+            log.debug("Created {n}".format(n=elem_name))
+            self.tree_changed = True
 
     def _check_for_links_to_update(self, link_type):
         """
@@ -434,8 +461,10 @@ class UpdateCSW(object):
     def _make_new_multiple_element(self, element_name, value):
         #TODO abstract beyond keywords using element_name
 
-        element = etree.Element("{ns}keyword".format(ns="{"+self.namespaces["gmd"]+"}"), nsmap=self.namespaces)
-        child_element = etree.SubElement(element,"{ns}CharacterString".format(ns="{"+self.namespaces["gco"]+"}"))
+        element = etree.Element("{ns}keyword".format(ns="{"+self.namespaces["gmd"]+"}"),
+            nsmap=self.namespaces)
+        child_element = etree.SubElement(element,
+            "{ns}CharacterString".format(ns="{"+self.namespaces["gco"]+"}"))
         child_element.text = value
         return element
 
@@ -905,7 +934,6 @@ class UpdateCSW(object):
 
 
 
-
     def NEW_temporal_start(self, uuid, new_date):
         if new_date != "":
             update = self._update_temporal_extent(new_date, "start")
@@ -1047,9 +1075,9 @@ class UpdateCSW(object):
                 #log.debug(self.csw.request)
                 #log.debug(self.csw.response)
                 time.sleep(2)
-                log.info("Updated: {uuid}\n\n\n".format(uuid=self.uuid))
+                log.info("Updated: {uuid}\n\n".format(uuid=self.uuid))
             else:
-                log.info("No change: {uuid}\n\n\n".format(uuid=self.uuid))
+                log.info("No change: {uuid}\n\n".format(uuid=self.uuid))
 
 
 def main():
