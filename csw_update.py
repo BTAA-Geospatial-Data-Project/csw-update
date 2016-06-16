@@ -475,7 +475,6 @@ class UpdateCSW(object):
         Keyword specific at the moment
         """
         log.debug("NEW VALUE INPUT: " + new_values_string)
-
         new_values_list = new_values_string.split(self.INNER_DELIMITER)
 
         if len(new_values_list) == 1 and new_values_list[0] == "":
@@ -512,13 +511,12 @@ class UpdateCSW(object):
             md_keywords = existing_values[0].getparent().getparent()
             existing_values_text = [i.text for i in existing_values]
 
-            log.debug("EXISTING VALUES: " + ", ".join(existing_values_text))
-
+            log.debug("EXISTING VALUES: " + "| ".join(existing_values_text))
             add_values = list(set(new_values_list) - set(existing_values_text))
             delete_values = list(set(existing_values_text) - set(new_values_list))
 
-            log.debug("VALUES TO ADD: " + ", ".join(add_values))
-            log.debug("VALUES TO DELETE: " + ", ".join(delete_values))
+            log.debug("VALUES TO ADD: " + "| ".join(add_values))
+            log.debug("VALUES TO DELETE: " + "| ".join(delete_values))
 
         else:
             delete_values = []
@@ -528,8 +526,9 @@ class UpdateCSW(object):
 
         for delete_value in delete_values:
             #TODO abstract out keyword specifics
-            del_ele = tree.xpath("//gmd:keyword/gco:CharacterString[text()='{val}']".format(val=delete_value), namespaces=self.namespaces_no_empty)
+            del_ele = tree.xpath(tree.getpath(md_keywords)+"/gmd:keyword/gco:CharacterString[text()='{val}']".format(val=delete_value), namespaces=self.namespaces_no_empty)
             if len(del_ele) == 1:
+                log.debug("Deleted: {v}".format(v=delete_value))
                 p = del_ele[0].getparent()
                 p.remove(del_ele[0])
                 pp = p.getparent()
