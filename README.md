@@ -9,6 +9,7 @@ Either clone the repo or [download as a zip](https://github.com/CIC-Geospatial-D
 1. Make a copy of `config.py.sample`
 2. Name it `config.py`
 3. Fill in `CSW_URL`, `USER`, and `PASSWORD`
+4. (Optional) Set DEBUG to True for more detailed execution information.
 
 # Export from GeoNetwork
 Export a CSV for the records you want to edit via spreadsheet. We use a custom CSV export for the CIC: GDDP (mainly for link handling), but as long as you have the `uuid` field, the tool should work with the out of the box CSV export.

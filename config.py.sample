@@ -1,3 +1,4 @@
 CSW_URL = "" # http(s)://yoursite.com/geonetwork/srv/eng/csw-publication
 USER = "" # eg. admin
 PASSWORD = ""
+DEBUG = False
