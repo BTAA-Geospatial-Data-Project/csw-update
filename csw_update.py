@@ -107,8 +107,10 @@ class UpdateCSW(object):
                 "distribution_link"               : "gmd:distributionInfo/gmd:MD_Distribution/gmd:transferOptions[{index}]/gmd:MD_DigitalTransferOptions[1]/gmd:onLine[1]/gmd:CI_OnlineResource[1]/gmd:linkage[1]/gmd:URL[1]",
                 "distributor_distribution_link"   : "gmd:distributionInfo/gmd:MD_Distribution/gmd:distributor[{distributor_index}]/gmd:MD_Distributor/gmd:distributorTransferOptions[{index}]/gmd:MD_DigitalTransferOptions/gmd:onLine/gmd:CI_OnlineResource/gmd:linkage/gmd:URL",
                 "keywords_theme"                  :"gmd:identificationInfo/gmd:MD_DataIdentification/gmd:descriptiveKeywords/gmd:MD_Keywords/gmd:type/gmd:MD_KeywordTypeCode[@codeListValue='theme']/../../gmd:keyword/gco:CharacterString",
+                "keywords_theme_base"                  :"gmd:identificationInfo/gmd:MD_DataIdentification/gmd:descriptiveKeywords/gmd:MD_Keywords/gmd:type/gmd:MD_KeywordTypeCode[@codeListValue='theme']",
                 "keywords_theme_gemet"            :"gmd:identificationInfo/gmd:MD_DataIdentification/gmd:descriptiveKeywords/gmd:MD_Keywords/gmd:thesaurusName/gmd:CI_Citation/gmd:title/gco:CharacterString[text()='GEMET']",
                 "keywords_place"                  :"gmd:identificationInfo/gmd:MD_DataIdentification/gmd:descriptiveKeywords/gmd:MD_Keywords/gmd:type/gmd:MD_KeywordTypeCode[@codeListValue='place']/../../gmd:keyword/gco:CharacterString",
+                "keywords_place_base"             :"gmd:identificationInfo/gmd:MD_DataIdentification/gmd:descriptiveKeywords/gmd:MD_Keywords/gmd:type/gmd:MD_KeywordTypeCode[@codeListValue='place']",
                 "descriptive_keywords"            :"gmd:identificationInfo/gmd:MD_DataIdentification/gmd:descriptiveKeywords",
                 "md_data_identification"          :"gmd:identificationInfo/gmd:MD_DataIdentification",
                 "topic_categories"                : "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:topicCategory/gmd:MD_TopicCategoryCode",
@@ -470,7 +472,7 @@ class UpdateCSW(object):
 
     def _multiple_element_update(self, uuid, new_values_string, multiple_element_name):
         """
-        This is heinous. I'm sorry.
+        Keyword specific at the moment
         """
         log.debug("NEW VALUE INPUT: " + new_values_string)
 
@@ -481,18 +483,48 @@ class UpdateCSW(object):
 
         tree = self.record_etree
         tree_changed = False
+
+        base_desc_kw = tree.findall(self.XPATHS[self.schema][multiple_element_name+"_base"],
+            namespaces=self.namespaces)
+
+        if len(base_desc_kw) == 0:
+            # "descriptive_keywords"            :"gmd:identificationInfo/gmd:MD_DataIdentification/gmd:descriptiveKeywords",
+            # "md_data_identification"          :"gmd:identificationInfo/gmd:MD_DataIdentification",
+            new_desc_kw = self._parse_snippet(multiple_element_name + ".xml")
+            existing_desc_kw = tree.findall(self.XPATHS[self.schema]["descriptive_keywords"],
+                namespaces=self.namespaces)
+            if len(existing_desc_kw) > 0:
+                existing_desc_kw[-1].addnext(new_desc_kw)
+                self.tree_changed = True
+            else:
+                md_data_identification = tree.find(self.XPATHS[self.schema]["md_data_identification"],
+                    namespaces=self.namespaces)
+                if md_data_identification is not None:
+                    md_data_identification.append(new_desc_kw)
+                    self.tree_changed = True
+            log.debug("Created descriptiveKeywords, now recursing to add keywords.")
+            self._multiple_element_update(uuid, new_values_string, multiple_element_name)
+
         xpath = self.XPATHS[self.schema][multiple_element_name]
         existing_values = tree.findall(xpath, namespaces=self.namespaces)
-        existing_values_parent = existing_values[0].getparent().getparent()
-        existing_values_text = [i.text for i in existing_values]
 
-        log.debug("EXISTING VALUES: " + ", ".join(existing_values_text))
+        if len(existing_values) > 0:
+            md_keywords = existing_values[0].getparent().getparent()
+            existing_values_text = [i.text for i in existing_values]
 
-        add_values = list(set(new_values_list) - set(existing_values_text))
-        delete_values = list(set(existing_values_text) - set(new_values_list))
+            log.debug("EXISTING VALUES: " + ", ".join(existing_values_text))
 
-        log.debug("VALUES TO ADD: " + ", ".join(add_values))
-        log.debug("VALUES TO DELETE: " + ", ".join(delete_values))
+            add_values = list(set(new_values_list) - set(existing_values_text))
+            delete_values = list(set(existing_values_text) - set(new_values_list))
+
+            log.debug("VALUES TO ADD: " + ", ".join(add_values))
+            log.debug("VALUES TO DELETE: " + ", ".join(delete_values))
+
+        else:
+            delete_values = []
+            add_values = new_values_list
+            md_keywords = base_desc_kw[0].getparent().getparent()
+            log.debug("VALUES TO ADD: " + ", ".join(add_values))
 
         for delete_value in delete_values:
             #TODO abstract out keyword specifics
@@ -513,7 +545,7 @@ class UpdateCSW(object):
             #     continue
 
             new_element = self._make_new_multiple_element(multiple_element_name, value)
-            existing_values_parent.append(new_element)
+            md_keywords.append(new_element)
             tree_changed = True
 
         if tree_changed:
@@ -782,7 +814,7 @@ class UpdateCSW(object):
 
     def _create_date(self, date_elem, new_date, date_type):
         ci_date = etree.SubElement(date_elem,
-            "{ns}CI_date".format(ns="{"+self.namespaces["gmd"]+"}"),
+            "{ns}CI_Date".format(ns="{"+self.namespaces["gmd"]+"}"),
             nsmap=self.namespaces)
         self._add_datetype_to_date(ci_date, date_type)
 
@@ -849,8 +881,16 @@ class UpdateCSW(object):
                             [date_elem.remove(i) for i in date_children]
                             self._create_date(date_elem, iso_date, date_type)
                             self.tree_changed = True
+                        elif ci_date.find("gmd:dateType", namespaces=self.namespaces) is not None and ci_date.find("gmd:dateType", namespaces=self.namespaces).get("codeListValue") != date_type:
+                            date_elem = etree.SubElement(citation_element[0],
+                                "{ns}date".format(ns="{"+self.namespaces["gmd"]+"}"),
+                                nsmap=self.namespaces)
+                            self._create_date(date_elem, iso_date, date_type)
+                            self.tree_changed = True
                         elif ci_date.find("gmd:dateType", namespaces=self.namespaces) is None:
                             self._add_datetype_to_date(ci_date, date_type)
+
+
 
 
                 else:
