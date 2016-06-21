@@ -304,6 +304,12 @@ class UpdateCSW(object):
         transferOptions = self.record_etree.xpath(self.XPATHS[self.schema]["transferOptions"],
             namespaces=self.namespaces_no_empty)
 
+        new_link_layer_name = None
+        new_link_split = new_link.split(self.INNER_DELIMITER)
+        new_link = new_link_split[0]
+        if len(new_link_split) > 1:
+            new_link_layer_name = new_link_split[1]
+
         if len(transferOptions) > 0:
             digital_trans_options = self.record_etree.xpath(self.XPATHS[self.schema]["digital_trans_options"],
                 namespaces=self.namespaces_no_empty)
@@ -329,10 +335,19 @@ class UpdateCSW(object):
                 protocol_string = etree.SubElement(protocol,
                     "{ns}CharacterString".format(ns="{"+self.namespaces["gco"]+"}"),
                     nsmap=self.namespaces)
+                name = etree.SubElement(ci_onlineresource,
+                    "{ns}name".format(ns="{"+self.namespaces["gmd"]+"}"),
+                    nsmap=self.namespaces)
+                name_string = etree.SubElement(ci_onlineresource,
+                    "{ns}CharacterString".format(ns="{"+self.namespaces["gco"]+"}"),
+                    nsmap=self.namespaces)
 
                 #add the text
                 url.text = new_link
                 protocol_string.text = self.protocols_list[0]
+
+                if new_link_layer_name:
+                    name_string.text = new_link_layer_name
 
                 self.tree_changed = True
 
@@ -387,6 +402,13 @@ class UpdateCSW(object):
         tree = self.record_etree
         self._get_links_from_record(uuid)
         record_links = self._current_link_urls()
+
+        new_link_layer_name = None
+        new_link_split = new_link.split(self.INNER_DELIMITER)
+        new_link = new_link_split[0]
+        if len(new_link_split) > 1:
+            new_link_layer_name = new_link_split[1]
+
         #import pdb; pdb.set_trace()
         links_to_update = self._check_for_links_to_update(link_type)
         resources_no_protocol = self._get_resources_no_protocol()
@@ -398,12 +420,24 @@ class UpdateCSW(object):
         #log.debug(etree.tostring(self.record_etree))
         for i in links_to_update:
             elem = i.find("gmd:linkage/gmd:URL", namespaces=self.namespaces)
+            layer_name_elem = i.find("gmd:name/gco:CharacterString", namespaces=self.namespaces)
             current_val = elem.text
             current_protocol = i.find("gmd:protocol/gco:CharacterString", namespaces=self.namespaces)
             log.debug("Current protocol: {p}".format(p=current_protocol.text))
             log.debug("Current text: {t}".format(t=current_val))
 
             if current_protocol.text in self.protocols_list and current_protocol.text != "WWW:DOWNLOAD":
+
+                if "wms" in current_protocol.text.lower() and new_link_layer_name is not None and layer_name_elem is None:
+
+                    name = etree.SubElement(i,
+                        "{ns}name".format(ns="{"+self.namespaces["gmd"]+"}"),
+                        nsmap=self.namespaces)
+                    name_text = etree.SubElement(name,
+                        "{ns}CharacterString".format(ns="{"+self.namespaces["gco"]+"}"),
+                        nsmap=self.namespaces)
+                    name_text.text = new_link_layer_name
+                    self.tree_changed = True
 
                 if current_val and current_val == new_link:
                     #if so, we have nothing to do!
