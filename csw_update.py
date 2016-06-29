@@ -59,6 +59,7 @@ class UpdateCSW(object):
         # these are the column names that will trigger a change
         self.field_handlers = {"iso19139": {
                 "NEW_title": self.NEW_title,
+                "NEW_publisher": self.NEW_publisher,
                 "NEW_link_download": self.NEW_link_download,
                 "NEW_link_service_wms": self.NEW_link_service_wms,
                 "NEW_link_service_esri": self.NEW_link_service_esri,
@@ -90,6 +91,7 @@ class UpdateCSW(object):
         }
         self.XPATHS = {"iso19139":{
                 "citation"                        : "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:citation/gmd:CI_Citation",
+                "publisher"                       : "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:citation/gmd:CI_Citation/gmd:citedResponsibleParty/gmd:CI_ResponsibleParty[gmd:role/gmd:CI_RoleCode[@codeListValue='publisher']]/gmd:organisationName/gco:CharacterString",
                 "title"                           : "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:citation/gmd:CI_Citation/gmd:title/gco:CharacterString",
                 "distribution_format"             : "gmd:distributionInfo/gmd:MD_Distribution/gmd:distributionFormat/gmd:MD_Format/gmd:name/gco:CharacterString",
                 "date_creation"                   : "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:citation/gmd:CI_Citation/gmd:date/gmd:CI_Date/gmd:dateType/gmd:CI_DateTypeCode[@codeListValue='creation']",
@@ -107,10 +109,11 @@ class UpdateCSW(object):
                 "distribution_link"               : "gmd:distributionInfo/gmd:MD_Distribution/gmd:transferOptions[{index}]/gmd:MD_DigitalTransferOptions[1]/gmd:onLine[1]/gmd:CI_OnlineResource[1]/gmd:linkage[1]/gmd:URL[1]",
                 "distributor_distribution_link"   : "gmd:distributionInfo/gmd:MD_Distribution/gmd:distributor[{distributor_index}]/gmd:MD_Distributor/gmd:distributorTransferOptions[{index}]/gmd:MD_DigitalTransferOptions/gmd:onLine/gmd:CI_OnlineResource/gmd:linkage/gmd:URL",
                 "keywords_theme"                  :"gmd:identificationInfo/gmd:MD_DataIdentification/gmd:descriptiveKeywords/gmd:MD_Keywords/gmd:type/gmd:MD_KeywordTypeCode[@codeListValue='theme']/../../gmd:keyword/gco:CharacterString",
-                "keywords_theme_base"                  :"gmd:identificationInfo/gmd:MD_DataIdentification/gmd:descriptiveKeywords/gmd:MD_Keywords/gmd:type/gmd:MD_KeywordTypeCode[@codeListValue='theme']",
+                "keywords_theme_base"             :"gmd:identificationInfo/gmd:MD_DataIdentification/gmd:descriptiveKeywords/gmd:MD_Keywords/gmd:type/gmd:MD_KeywordTypeCode[@codeListValue='theme']",
                 "keywords_theme_gemet"            :"gmd:identificationInfo/gmd:MD_DataIdentification/gmd:descriptiveKeywords/gmd:MD_Keywords/gmd:thesaurusName/gmd:CI_Citation/gmd:title/gco:CharacterString[text()='GEMET']",
                 "keywords_place"                  :"gmd:identificationInfo/gmd:MD_DataIdentification/gmd:descriptiveKeywords/gmd:MD_Keywords/gmd:type/gmd:MD_KeywordTypeCode[@codeListValue='place']/../../gmd:keyword/gco:CharacterString",
                 "keywords_place_base"             :"gmd:identificationInfo/gmd:MD_DataIdentification/gmd:descriptiveKeywords/gmd:MD_Keywords/gmd:type/gmd:MD_KeywordTypeCode[@codeListValue='place']",
+                "keywords_place_geonames"         :"gmd:identificationInfo/gmd:MD_DataIdentification/gmd:descriptiveKeywords/gmd:MD_Keywords/gmd:thesaurusName/gmd:CI_Citation/gmd:title/gco:CharacterString[text()='GeoNames']",
                 "descriptive_keywords"            :"gmd:identificationInfo/gmd:MD_DataIdentification/gmd:descriptiveKeywords",
                 "md_data_identification"          :"gmd:identificationInfo/gmd:MD_DataIdentification",
                 "topic_categories"                : "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:topicCategory/gmd:MD_TopicCategoryCode",
@@ -118,8 +121,8 @@ class UpdateCSW(object):
                 "purpose"                         :"gmd:identificationInfo/gmd:MD_DataIdentification/gmd:purpose/gco:CharacterString",
                 "extent"                          :"gmd:identificationInfo/gmd:MD_DataIdentification/gmd:extent",
                 "temporalextent"                  :"gmd:identificationInfo/gmd:MD_DataIdentification/gmd:extent/gmd:EX_Extent/gmd:temporalElement",
-                "temporalextent_start"     :"gmd:EX_TemporalExtent/gmd:extent/gml:TimePeriod/gml:beginPosition",
-                "temporalextent_end"       :"gmd:EX_TemporalExtent/gmd:extent/gml:TimePeriod/gml:endPosition",
+                "temporalextent_start"            :"gmd:EX_TemporalExtent/gmd:extent/gml:TimePeriod/gml:beginPosition",
+                "temporalextent_end"              :"gmd:EX_TemporalExtent/gmd:extent/gml:TimePeriod/gml:endPosition",
                 "temporalextent_instant"          :"gmd:EX_TemporalExtent/gmd:extent/gml:TimeInstant/gml:timePosition"
                 #"link_information"                :"gmd:distributionInfo/gmd:MD_Distribution/gmd:transferOptions/gmd:MD_DigitalTransferOptions/gmd:onLine/gmd:CI_OnlineResource/gmd:protocol/gco:CharacterString[text()='WWW:LINK'"
             },
@@ -202,25 +205,25 @@ class UpdateCSW(object):
         tree = self.record_etree
 
         original_path = path
-        elem = None
+        elem = []
 
-        while elem is None:
-            elem = tree.find(path, namespaces=self.namespaces)
-            if elem is None:
+        while len(elem) == 0:
+            elem = tree.xpath(path, namespaces=self.namespaces)
+            if len(elem) == 0:
                 log.debug("Did not find \n {p} \n trying next level up.".format(p=path))
                 path = "/".join(path.split("/")[:-1])
 
-        if elem is not None and path == original_path:
+        if len(elem) > 0 and path == original_path:
             log.debug("Found the path: \n {p}".format(p=path))
-            if elem.text != new_value:
-                elem.text = new_value
+            if elem[0].text != new_value:
+                elem[0].text = new_value
                 self.tree_changed = True
             else:
                 log.info("Value for \n {p} \n already set to: {v}".format(p=path.split("/")[-2],v=new_value))
-        elif elem is not None and path != original_path:
+        elif len(elem) > 0 and path != original_path:
             elements_to_create = [e for e in original_path.split("/") if e not in path]
-            self._create_elements(elem, elements_to_create)
-            log.debug("Recursing to _simple_element_update again now that element should be there.")
+            self._create_elements(elem[0], elements_to_create)
+            log.debug("Recursing to _simple_element_update now that element should be there.")
             self._simple_element_update(uuid, new_value, xpath=original_path)
 
     def _create_elements(self, start_element, list_of_element_names):
@@ -466,21 +469,6 @@ class UpdateCSW(object):
                 xpath = self.record_etree.getpath(current_protocol)
                 xpath = "/".join(xpath.split("/")[2:])
 
-
-            # log.debug("_update_links XPATH: " + xpath)
-            #
-            # self.csw.transaction(ttype="update",
-            #     typename='csw:Record',
-            #     propertyname=xpath,
-            #     propertyvalue=value,
-            #     identifier=uuid)
-            # time.sleep(2)
-            # self.row_changed = True
-            #
-            # log.debug(self.csw.request)
-            # log.debug(self.csw.response)
-
-
         #if the new url is nowhere to be found, create a new resource
         if new_link not in record_links:
 
@@ -489,10 +477,6 @@ class UpdateCSW(object):
             self._create_new_link(new_link, link_type)
             log.debug("Updated links: " + ", ".join(self._current_link_urls()))
 
-    # def _get_record_and_etree(self, uuid):
-    #     self.get_record_by_id(uuid)
-    #     self.record_etree
-    #     return self.record_etree
 
     def _make_new_multiple_element(self, element_name, value):
         #TODO abstract beyond keywords using element_name
@@ -503,6 +487,7 @@ class UpdateCSW(object):
             "{ns}CharacterString".format(ns="{"+self.namespaces["gco"]+"}"))
         child_element.text = value
         return element
+
 
     def _multiple_element_update(self, uuid, new_values_string, multiple_element_name):
         """
@@ -599,6 +584,14 @@ class UpdateCSW(object):
         if new_abstract != "" and new_abstract != "SKIP":
             update = self._simple_element_update(uuid, new_abstract, element="abstract")
             log.info("updated abstract")
+
+    def NEW_publisher(self, uuid, new_publisher):
+        """
+        Updates publisher of record
+        """
+        if new_publisher != "" and new_publisher != "SKIP":
+            update = self._simple_element_update(uuid, new_publisher, element="publisher")
+            log.info("updated publisher")
 
     def NEW_distribution_format(self, uuid, new_format):
         """
@@ -708,14 +701,15 @@ class UpdateCSW(object):
         if tree_changed:
             self.tree_changed = True
 
+
     def NEW_keywords_place(self, uuid, new_keywords):
         update = self._multiple_element_update(uuid, new_keywords, "keywords_place")
         log.info("updated place keywords")
 
+
     def NEW_keywords_theme(self, uuid, new_keywords):
         update = self._multiple_element_update(uuid, new_keywords, "keywords_theme")
         log.info("updated theme keywords")
-
 
 
     def _make_new_descriptive_keywords(self, tree):
@@ -731,12 +725,30 @@ class UpdateCSW(object):
                 return etree.SubElement(md_di, "{ns}descriptiveKeywords".format(ns="{"+self.namespaces["gmd"]+"}"), nsmap=self.namespaces)
 
 
-    def _make_new_keyword_thesaurus_elements(self):
+    def _make_new_keyword_thesaurus_elements(self, thesaurus_name):
         tree = self.record_etree
         dk = tree.findall(self.XPATHS[self.schema]["descriptive_keywords"], namespaces=self.namespaces)
-        thesaurus = etree.parse("xml_snippets/thesaurus_gemet.xml")
-        dk[-1].addnext(thesaurus.getroot())
-        return dk[-1].getnext().find("gmd:MD_Keywords", namespaces=self.namespaces)
+        thesaurus = self._parse_snippet("thesaurus_{n}.xml".format(n=thesaurus_name))
+        elem = None
+        if len(dk) > 0:
+            elem = dk[-1]
+        else:
+            md_di = tree.find(self.XPATHS[self.schema]["md_data_identification"], namespaces=self.namespaces)
+
+            # ATM I can't think of a better way to make sure a fresh desc kw elem gets placed in the correct spot.
+            potential_siblings = ["gmd:resourceFormat","gmd:graphicOverview","gmd:resourceMaintenance",
+                "gmd:pointOfContact","gmd:status","gmd:credit","gmd:purpose","gmd:abstract"]
+
+            for i in potential_siblings:
+                log.debug("Looking for: {e}".format(e=i))
+                elem = md_di.find(i, namespaces=self.namespaces)
+                if elem is not None:
+                    log.debug("Found: {e}".format(e=i))
+                    break
+
+
+        elem.addnext(thesaurus)
+        return elem.getnext().find("gmd:MD_Keywords", namespaces=self.namespaces)
 
 
     def _make_new_keyword_anchor(self, value, uri, parent_node):
@@ -746,12 +758,94 @@ class UpdateCSW(object):
         child_element.text = value
         parent_node.insert(0, element)
 
+    def _make_new_keyword_text(self, value, parent_node):
+        element = etree.Element("{ns}keyword".format(ns="{"+self.namespaces["gmd"]+"}"), nsmap=self.namespaces)
+        child_element = etree.SubElement(element,"{ns}CharacterString".format(ns="{"+self.namespaces["gco"]+"}"))
+        child_element.text = value
+        parent_node.insert(0, element)
+
+
+    def _keywords_thesaurus_update(self, uuid, new_values_string, ids=None, kw_type=None, thesaurus=None):
+        """
+        This is heinous. I'm sorry.
+        """
+        log.info("KEYWORD TYPE: {t}".format(t=kw_type))
+        log.info("THESAURUS: {t}".format(t=thesaurus))
+        log.info("NEW VALUE INPUT: " + new_values_string)
+
+        new_values_list = new_values_string.split(self.INNER_DELIMITER)
+
+        if ids:
+            new_ids_list = ids.split(self.INNER_DELIMITER)
+
+            if len(new_ids_list) == 1 and new_ids_list[0] == "":
+                return
+
+        if len(new_values_list) == 1 and new_values_list[0] == "":
+            return
+
+        tree = self.record_etree
+        tree_changed = False
+        thesaurus_xpath = self.XPATHS[self.schema]["keywords_{kw_type}_{thesaurus}".format(kw_type=kw_type, thesaurus=thesaurus)]
+        existing_thesaurus = tree.xpath(thesaurus_xpath, namespaces=self.namespaces_no_empty)
+
+        if len(existing_thesaurus) == 0:
+            md_kw = self._make_new_keyword_thesaurus_elements(thesaurus)
+            tree_changed = True
+
+            if ids:
+                for index, value in enumerate(new_values_list):
+                    self._make_new_keyword_anchor(value, new_ids_list[index], md_kw)
+            else:
+                for value in new_values_list:
+                    self._make_new_keyword_text(value, md_kw)
+        else:
+            existing_values = existing_thesaurus[0].getparent().getparent().getparent().getparent().findall("gmd:keyword/*", namespaces=self.namespaces)
+            existing_values_parent = existing_values[0].getparent().getparent()
+            existing_values_text = [i.text for i in existing_values]
+
+            log.info("EXISTING VALUES: " + ", ".join(existing_values_text))
+
+            add_values = list(set(new_values_list) - set(existing_values_text))
+            delete_values = list(set(existing_values_text) - set(new_values_list))
+
+            #TODO can't handle going between anchor/text, but i don't care!!!!! hahahahha
+            if ids:
+                #Are these even necessary? Not doing anything with em anyway
+                existing_ids = [i.get("{{ns}}href".format(ns="{"+self.namespaces["xlink"]+"}")) for i in existing_values]
+                add_ids = list(set(new_ids_list) - set(existing_ids))
+                delete_ids = list(set(existing_ids) - set(new_ids_list))
+
+            log.info("VALUES TO ADD: " + ", ".join(add_values))
+            log.info("VALUES TO DELETE: " + ", ".join(delete_values))
+
+            for delete_value in delete_values:
+                #TODO abstract out keyword specifics
+                del_ele = tree.xpath("//gmd:keyword/*[text()='{val}']".format(val=delete_value), namespaces=self.namespaces_no_empty)
+                if len(del_ele) == 1:
+                    p = del_ele[0].getparent()
+                    p.remove(del_ele[0])
+                    pp = p.getparent()
+                    pp.remove(p)
+                    tree_changed = True
+
+            for value in add_values:
+
+                if ids:
+                    self._make_new_keyword_anchor(value,  add_ids[index], existing_values_parent)
+                else:
+                    self._make_new_keyword_text(value, existing_values_parent)
+                tree_changed = True
+
+        if tree_changed:
+            self.tree_changed = True
+
 
     def _keywords_theme_gemet_update(self, uuid, new_values_string, new_ids_string):
         """
         This is heinous. I'm sorry.
         """
-        log.debug("NEW VALUE INPUT: " + new_values_string)
+        log.info("NEW VALUE INPUT: " + new_values_string)
 
         new_values_list = new_values_string.split(self.INNER_DELIMITER)
         new_ids_list = new_ids_string.split(self.INNER_DELIMITER)
@@ -779,15 +873,15 @@ class UpdateCSW(object):
             existing_values_text = [i.text for i in existing_values]
             existing_ids = [i.get("{{ns}}href".format(ns="{"+self.namespaces["xlink"]+"}")) for i in existing_values]
 
-            log.debug("EXISTING VALUES: " + ", ".join(existing_values_text))
+            log.info("EXISTING VALUES: " + ", ".join(existing_values_text))
 
             add_values = list(set(new_values_list) - set(existing_values_text))
             add_ids = list(set(new_ids_list) - set(existing_ids))
             delete_values = list(set(existing_values_text) - set(new_values_list))
             delete_ids = list(set(existing_ids) - set(new_ids_list))
 
-            log.debug("VALUES TO ADD: " + ", ".join(add_values))
-            log.debug("VALUES TO DELETE: " + ", ".join(delete_values))
+            log.info("VALUES TO ADD: " + ", ".join(add_values))
+            log.info("VALUES TO DELETE: " + ", ".join(delete_values))
 
             for delete_value in delete_values:
                 #TODO abstract out keyword specifics
@@ -806,15 +900,16 @@ class UpdateCSW(object):
         if tree_changed:
             self.tree_changed = True
 
+
     def NEW_keywords_theme_gemet_name(self, uuid, gemet_names):
         gemet_ids = self.row["NEW_keywords_theme_gemet_id"]
-        self._keywords_theme_gemet_update(uuid, gemet_names, gemet_ids)
+        self._keywords_thesaurus_update(uuid, gemet_names, ids=gemet_ids, kw_type="theme", thesaurus="gemet")
         log.info("updated gemet keywords")
 
 
     def NEW_keywords_place_geonames(self, uuid, geonames):
-        log.debug("updated geonames keywords (but not really)")
-
+        self._keywords_thesaurus_update(uuid, geonames, kw_type="place", thesaurus="geonames")
+        log.info("updated geonames keywords")
 
 
     def _date_or_datetime(self,date_element):
@@ -846,6 +941,7 @@ class UpdateCSW(object):
 
 
     def _create_date(self, date_elem, new_date, date_type):
+        log.info("Creating new {dt}.".format(dt=date_type))
         ci_date = etree.SubElement(date_elem,
             "{ns}CI_Date".format(ns="{"+self.namespaces["gmd"]+"}"),
             nsmap=self.namespaces)
@@ -945,7 +1041,7 @@ class UpdateCSW(object):
         new_extent = etree.Element("{ns}extent".format(ns="{"+self.namespaces["gmd"]+"}"), nsmap=self.namespaces)
         ex_extent = etree.SubElement(new_extent, "{ns}EX_Extent".format(ns="{"+self.namespaces["gmd"]+"}"), nsmap=self.namespaces)
         last_extent.addnext(new_extent)
-        log.debug("Added new extent.")
+        log.info("Added new extent.")
         return ex_extent
 
 
