@@ -81,7 +81,9 @@ class UpdateCSW(object):
             "NEW_temporal_start": self.NEW_temporal_start,
             "NEW_temporal_instant": self.NEW_temporal_instant,
             "DELETE_link": self.DELETE_link,
-            "DELETE_link_no_protocol": self.DELETE_link_no_protocol
+            "DELETE_link_no_protocol": self.DELETE_link_no_protocol,
+            "NEW_geometry_type":  self.NEW_geometry_type
+
         },
 
             # currently unused
@@ -126,7 +128,9 @@ class UpdateCSW(object):
             "temporalextent_start": "gmd:EX_TemporalExtent/gmd:extent/gml:TimePeriod/gml:beginPosition",
             "temporalextent_end": "gmd:EX_TemporalExtent/gmd:extent/gml:TimePeriod/gml:endPosition",
             "temporalextent_instant": "gmd:EX_TemporalExtent/gmd:extent/gml:TimeInstant/gml:timePosition",
-            "ci_date_type": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:citation/gmd:CI_Citation/gmd:date/gmd:CI_Date[gmd:dateType/gmd:CI_DateTypeCode/@codeListValue='{datetype}']/gmd:date"
+            "ci_date_type": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:citation/gmd:CI_Citation/gmd:date/gmd:CI_Date[gmd:dateType/gmd:CI_DateTypeCode/@codeListValue='{datetype}']/gmd:date",
+            "geometry_type": "gmd:spatialRepresentationInfo/gmd:MD_VectorSpatialRepresentation/gmd:geometricObjects/gmd:MD_GeometricObjects/gmd:geometricObjectType/[@codeListValue='{geomtype}']/gmd:MD_GeometricObjectTypeCode"
+
         },
 
             "dublin-core": {
@@ -148,12 +152,12 @@ class UpdateCSW(object):
         }
 
         self.topic_categories = [
-            'intelligenceMilitary', 'environment',
-            'geoscientificinformation', 'elevation', 'utilitiesCommunications',
-            'structure', 'oceans', 'planningCadastre', 'inlandWaters',
+            'Intelligence military', 'environment',
+            'Geoscientific information', 'elevation', 'Utilities communications',
+            'structure', 'oceans', 'Planning cadastre', 'Inland waters',
             'boundaries', 'society', 'biota', 'health', 'location',
-            'climatologyMeteorologyAtmosphere', 'transportation', 'farming',
-            'imageryBaseMapsEarthCover', 'economy']
+            'Climatology, meteorology, atmosphere', 'transportation', 'farming',
+            'Imagery base maps earth cover', 'economy']
 
     @staticmethod
     def get_namespaces():
@@ -186,11 +190,9 @@ class UpdateCSW(object):
         """
         Updates single element of record. Nothing fancy.
         Elements like abstract and title.
-
         Positional arguments:
         uuid -- the unique id of the record to be updated
         new_value -- the new value supplied from the csv
-
         Keyword arguments (need one and only one):
         xpath -- must follow straight from the root element
         element -- match a name in self.XPATHS for the current schema
@@ -253,7 +255,6 @@ class UpdateCSW(object):
     def _check_for_links_to_update(self, link_type):
         """
         Return a list of links that match a given type.
-
         Positional argument:
         link_type -- The type of link to look for. download, information,
             esri_service, and wms_service are current values for link_type)
@@ -272,7 +273,6 @@ class UpdateCSW(object):
     def _add_protocol_to_resource(self, resource, link_type):
         """
         Creates a protocol element and its text for a given online resource.
-
         Positional arguments:
         resource -- A CI_Online_Resource currently lacking a protocol.
         link_type -- The type of link, which determines the protocol applied.
@@ -300,7 +300,6 @@ class UpdateCSW(object):
         """
         Matches inputted link to existing resources without
         protocols and if successful, adds protocol.
-
         Positional arguments:
         new_link -- The link to search for
         link_type -- The type of link, which us be used to create the protocol
@@ -321,7 +320,6 @@ class UpdateCSW(object):
         """
         Create a new onLine element.
         Assumes that gmd:MD_DigitalTransferOptions exists.
-
         Positional arguments:
         new_link -- The link to search for
         link_type -- The type of link, which us be used to create the protocol
@@ -559,7 +557,7 @@ class UpdateCSW(object):
         if len(base_desc_kw) == 0:
             # "descriptive_keywords"            :"gmd:identificationInfo/gmd:MD_DataIdentification/gmd:descriptiveKeywords",
             # "md_data_identification"          :"gmd:identificationInfo/gmd:MD_DataIdentification",
-            new_desc_kw = self._parse_snippet(multiple_element_name + ".xml")
+            new_desc_kw = self._parse_snippet(multiple_element_name + ".xml")#
             existing_desc_kw = tree.findall(self.XPATHS[self.schema]["descriptive_keywords"],
                                             namespaces=self.namespaces)
             if len(existing_desc_kw) > 0:
@@ -667,6 +665,9 @@ class UpdateCSW(object):
             update = self._simple_element_update(
                 uuid, new_title, element="title")
             log.info("updated title")
+
+
+
 
     def NEW_link_download(self, uuid, new_link):
         if new_link != "" and new_link != "SKIP":
@@ -1088,6 +1089,8 @@ class UpdateCSW(object):
         datetypecode.set("codeSpace", "002")
         datetypecode.text = date_type
 
+
+
     def _add_datetype_to_date(self, ci_date, date_type):
         datetype = etree.SubElement(
             ci_date,
@@ -1305,6 +1308,8 @@ class UpdateCSW(object):
             update = self._update_temporal_extent(new_date, "instant")
             log.info("updated temporal instant date!")
 
+
+
     def NEW_contact_organization(self):
         # stub
         pass
@@ -1313,24 +1318,24 @@ class UpdateCSW(object):
         # stub
         pass
 
-    def update_timestamp(self, uuid):
-        ts = datetime.now().isoformat()
-        val = ts
-        tree = self.record_etree
-        pn = self.XPATHS[self.schema]["timestamp"] + "/gco:DateTime"
-        dateStamp = tree.find(pn, namespaces=self.namespaces)
-
-        if dateStamp is None:
-            pn = self.XPATHS[self.schema]["timestamp"] + "/gco:Date"
-            dateStamp = tree.find(pn, namespaces=self.namespaces)
-            val = ts[:10]
-
-        return self.csw.transaction(
-            ttype="update",
-            typename='csw:Record',
-            propertyname=pn,
-            propertyvalue=val,
-            identifier=uuid)
+#     def update_timestamp(self, uuid):
+#         ts = datetime.now().isoformat()
+#         val = ts
+#         tree = self.record_etree
+#         pn = self.XPATHS[self.schema]["timestamp"] + "/gco:DateTime"
+#         dateStamp = tree.find(pn, namespaces=self.namespaces)
+#
+#         if dateStamp is None:
+#             pn = self.XPATHS[self.schema]["timestamp"] + "/gco:Date"
+#             dateStamp = tree.find(pn, namespaces=self.namespaces)
+#             val = ts[:10]
+#
+#         return self.csw.transaction(
+#             ttype="update",
+#             typename='csw:Record',
+#             propertyname=pn,
+#             propertyvalue=val,
+#             identifier=uuid)
 
     def _get_etree_for_record(self, uuid):
         """
@@ -1429,7 +1434,7 @@ class UpdateCSW(object):
                     record=new_xml,
                     identifier=self.uuid)
                 time.sleep(2)
-                self.update_timestamp(self.uuid)
+               #  self.update_timestamp(self.uuid)
                 log.info("Updated: {uuid}\n\n".format(uuid=self.uuid))
             else:
                 log.info("No change: {uuid}\n\n".format(uuid=self.uuid))
