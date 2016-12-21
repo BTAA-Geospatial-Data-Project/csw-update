@@ -79,10 +79,16 @@ class UpdateCSW(object):
             "NEW_date_revision": self.NEW_date_revision,
             "NEW_temporal_end": self.NEW_temporal_end,
             "NEW_temporal_start": self.NEW_temporal_start,
-            "NEW_temporal_instant": self.NEW_temporal_instant,
+#             "NEW_temporal_instant": self.NEW_temporal_instant,
             "DELETE_link": self.DELETE_link,
             "DELETE_link_no_protocol": self.DELETE_link_no_protocol,
-            "NEW_geometry_type":  self.NEW_geometry_type
+			"NEW_ref_system": self.NEW_ref_system,
+			"NEW_north_extent": self.NEW_north_extent,
+			"NEW_south_extent": self.NEW_south_extent,
+			"NEW_east_extent": self.NEW_east_extent,
+			"NEW_west_extent": self.NEW_west_extent,
+			"NEW_collective_title": self.NEW_collective_title,
+			"NEW_other_citation": self.NEW_other_citation
 
         },
 
@@ -129,7 +135,13 @@ class UpdateCSW(object):
             "temporalextent_end": "gmd:EX_TemporalExtent/gmd:extent/gml:TimePeriod/gml:endPosition",
             "temporalextent_instant": "gmd:EX_TemporalExtent/gmd:extent/gml:TimeInstant/gml:timePosition",
             "ci_date_type": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:citation/gmd:CI_Citation/gmd:date/gmd:CI_Date[gmd:dateType/gmd:CI_DateTypeCode/@codeListValue='{datetype}']/gmd:date",
-            "geometry_type": "gmd:spatialRepresentationInfo/gmd:MD_VectorSpatialRepresentation/gmd:geometricObjects/gmd:MD_GeometricObjects/gmd:geometricObjectType/[@codeListValue='{geomtype}']/gmd:MD_GeometricObjectTypeCode"
+            "ref_system": "gmd:referenceSystemInfo/gmd:MD_ReferenceSystem/gmd:referenceSystemIdentifier/gmd:RS_Identifier/gmd:code/gco:CharacterString",
+            "north_extent": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:extent/gmd:EX_Extent/gmd:geographicElement/gmd:EX_GeographicBoundingBox/gmd:northBoundLatitude/gco:Decimal",
+            "south_extent": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:extent/gmd:EX_Extent/gmd:geographicElement/gmd:EX_GeographicBoundingBox/gmd:southBoundLatitude/gco:Decimal",
+            "east_extent": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:extent/gmd:EX_Extent/gmd:geographicElement/gmd:EX_GeographicBoundingBox/gmd:eastBoundLatitude/gco:Decimal",
+            "west_extent": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:extent/gmd:EX_Extent/gmd:geographicElement/gmd:EX_GeographicBoundingBox/gmd:westBoundLatitude/gco:Decimal",
+            "collective_title": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:citation/gmd:CI_Citation/gmd:collectiveTitle/gco:CharacterString",
+            "other_citation": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:citation/gmd:CI_Citation/gmd:otherCitationDetails/gco:CharacterString"
 
         },
 
@@ -158,6 +170,13 @@ class UpdateCSW(object):
             'boundaries', 'society', 'biota', 'health', 'location',
             'Climatology, meteorology, atmosphere', 'transportation', 'farming',
             'Imagery base maps earth cover', 'economy']
+
+        self.geometry_type = [
+            'Complex', 'Composite',
+            'Curve', 'Point', 'Solid',
+            'Surface']
+
+
 
     @staticmethod
     def get_namespaces():
@@ -666,9 +685,71 @@ class UpdateCSW(object):
                 uuid, new_title, element="title")
             log.info("updated title")
 
+    def NEW_collective_title(self, uuid, new_collective_title):
+        """
+        Updates collection of record
+        """
+        if new_collective_title != "" and new_collective_title != "SKIP":
+            update = self._simple_element_update(
+                uuid, new_collective_title, element="collective_title")
+            log.info("updated collection name")
+
+    def NEW_other_citation(self, uuid, new_other_citation):
+        """
+        Updates geometry type of record for GeoBlacklight Metadata crosswalk
+        """
+        if new_other_citation != "" and new_other_citation != "SKIP":
+            update = self._simple_element_update(
+                uuid, new_other_citation, element="other_citation")
+            log.info("updated other citation")
+
+    def NEW_ref_system(self, uuid, new_ref_system):
+        """
+        Updates reference system of record
+        """
+        if new_ref_system != "" and new_ref_system != "SKIP":
+            update = self._simple_element_update(
+                uuid, new_ref_system, element="ref_system")
+            log.info("updated reference system")
+
+    def NEW_north_extent(self, uuid, new_north_extent):
+        """
+        Updates north extent of record
+        """
+        if new_north_extent != "" and new_north_extent != "SKIP":
+            update = self._simple_element_update(
+                uuid, new_north_extent, element="north_extent")
+            log.info("updated north extent")
+
+    def NEW_south_extent(self, uuid, new_south_extent):
+        """
+        Updates north extent of record
+        """
+        if new_south_extent != "" and new_south_extent != "SKIP":
+            update = self._simple_element_update(
+                uuid, new_south_extent, element="south_extent")
+            log.info("updated south extent")
+
+    def NEW_east_extent(self, uuid, new_east_extent):
+        """
+        Updates north extent of record
+        """
+        if new_east_extent != "" and new_east_extent != "SKIP":
+            update = self._simple_element_update(
+                uuid, new_east_extent, element="east_extent")
+            log.info("updated east extent")
+
+    def NEW_west_extent(self, uuid, new_west_extent):
+        """
+        Updates north extent of record
+        """
+        if new_west_extent != "" and new_west_extent != "SKIP":
+            update = self._simple_element_update(
+                uuid, new_west_extent, element="west_extent")
+            log.info("updated west extent")
 
 
-
+#LINKS
     def NEW_link_download(self, uuid, new_link):
         if new_link != "" and new_link != "SKIP":
             update = self._update_links(uuid, new_link, "download")
@@ -712,6 +793,8 @@ class UpdateCSW(object):
                     self._delete_link_elementset(link)
                     log.info("deleted link: {link}".format(
                         link=link_to_delete))
+
+#TOPICS AND KEYWORDS
 
     def NEW_topic_categories(self, uuid, new_topic_categories):
         """
@@ -1062,6 +1145,9 @@ class UpdateCSW(object):
         )
         log.info("updated geonames keywords")
 
+
+#DATE
+
     def _date_or_datetime(self, date_element):
         e = date_element.find("gco:Date", namespaces=self.namespaces)
         if e is None:
@@ -1088,8 +1174,6 @@ class UpdateCSW(object):
         datetypecode.set("codeListValue", date_type)
         datetypecode.set("codeSpace", "002")
         datetypecode.text = date_type
-
-
 
     def _add_datetype_to_date(self, ci_date, date_type):
         datetype = etree.SubElement(
@@ -1214,6 +1298,8 @@ class UpdateCSW(object):
         snippet_root = snippet_tree.getroot()
         return snippet_root
 
+#TEMPORAL EXTENT
+
     def _add_extent(self):
         existing_extent = self.record_etree.xpath(
             self.XPATHS[self.schema]["extent"],
@@ -1303,12 +1389,12 @@ class UpdateCSW(object):
             update = self._update_temporal_extent(new_date, "end")
             log.info("updated temporal end date!")
 
-    def NEW_temporal_instant(self, uuid, new_date):
+#     def NEW_temporal_instant(self, uuid, new_date):
         if new_date != "":
             update = self._update_temporal_extent(new_date, "instant")
             log.info("updated temporal instant date!")
 
-
+#CONTACTS
 
     def NEW_contact_organization(self):
         # stub
@@ -1317,6 +1403,9 @@ class UpdateCSW(object):
     def NEW_contact_individual(self):
         # stub
         pass
+
+
+#PROCESS
 
 #     def update_timestamp(self, uuid):
 #         ts = datetime.now().isoformat()
