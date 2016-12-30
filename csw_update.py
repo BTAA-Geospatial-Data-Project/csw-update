@@ -1,3 +1,9 @@
+#Script for updating values in ISO 19139 XML files residing in an instance of GeoNetwork.
+#Created for Big Ten Academic Alliance Geospatial Data Project
+#2016
+
+
+
 #!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
@@ -19,11 +25,12 @@ from owslib import util
 from owslib.namespaces import Namespaces
 import unicodecsv as csv
 from dateutil import parser
+# from xml.etree import ElementTree as etree
 
 # config options - see config.py.sample for how to structure
 from config import CSW_URL, USER, PASSWORD, DEBUG
 
-# logging stuff
+# logging
 if DEBUG:
     log_level = logging.DEBUG
 else:
@@ -62,13 +69,13 @@ class UpdateCSW(object):
         self.field_handlers = {"iso19139": {
             "NEW_title": self.NEW_title,
             "NEW_publisher": self.NEW_publisher,
+            "NEW_originator":self.NEW_originator,
+            "NEW_distributor":self.NEW_distributor,
             "NEW_link_download": self.NEW_link_download,
             "NEW_link_service_wms": self.NEW_link_service_wms,
             "NEW_link_service_esri": self.NEW_link_service_esri,
             "NEW_link_information": self.NEW_link_information,
             "NEW_distribution_format": self.NEW_distribution_format,
-            "NEW_contact_organization": self.NEW_contact_organization,
-            "NEW_contact_individual": self.NEW_contact_individual,
             "NEW_topic_categories": self.NEW_topic_categories,
             "NEW_abstract": self.NEW_abstract,
             "NEW_keywords_theme": self.NEW_keywords_theme,
@@ -81,19 +88,28 @@ class UpdateCSW(object):
             "NEW_temporal_start": self.NEW_temporal_start,
             "NEW_temporal_instant": self.NEW_temporal_instant,
             "DELETE_link": self.DELETE_link,
-            "DELETE_link_no_protocol": self.DELETE_link_no_protocol
+            "DELETE_link_no_protocol": self.DELETE_link_no_protocol,
+			"NEW_ref_system": self.NEW_ref_system,
+			"NEW_north_extent": self.NEW_north_extent,
+			"NEW_south_extent": self.NEW_south_extent,
+			"NEW_east_extent": self.NEW_east_extent,
+			"NEW_west_extent": self.NEW_west_extent,
+			"NEW_collective_title": self.NEW_collective_title,
+			"NEW_other_citation": self.NEW_other_citation,
+			"NEW_maintenance_note": self.NEW_maintenance_note,
+			"NEW_parent": self.NEW_parent,
+# 			"new_dataset_uri": self.NEW_dataset_uri
+
         },
 
-            # currently unused
-            "dublin-core": {
-                u"NEW_title": self.NEW_title,
-                u"NEW_abstract": self.NEW_abstract
-        }
 
+		#the xpaths to all of the elements accessible for changes.
+		#Root is gmd:MD_Metadata
         }
         self.XPATHS = {"iso19139": {
             "citation": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:citation/gmd:CI_Citation",
             "publisher": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:citation/gmd:CI_Citation/gmd:citedResponsibleParty/gmd:CI_ResponsibleParty[gmd:role/gmd:CI_RoleCode[@codeListValue='publisher']]/gmd:organisationName/gco:CharacterString",
+            "originator": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:citation/gmd:CI_Citation/gmd:citedResponsibleParty/gmd:CI_ResponsibleParty[gmd:role/gmd:CI_RoleCode[@codeListValue='originator']]/gmd:organisationName/gco:CharacterString",
             "title": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:citation/gmd:CI_Citation/gmd:title/gco:CharacterString",
             "distribution_format": "gmd:distributionInfo/gmd:MD_Distribution/gmd:distributionFormat/gmd:MD_Format/gmd:name/gco:CharacterString",
             "date_creation": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:citation/gmd:CI_Citation/gmd:date/gmd:CI_Date/gmd:dateType/gmd:CI_DateTypeCode[@codeListValue='creation']",
@@ -103,6 +119,7 @@ class UpdateCSW(object):
             "contact_individual": "gmd:contact/gmd:CI_ResponsibleParty/gmd:individualName/gco:CharacterString",
             "timestamp": "gmd:dateStamp",
             "md_distribution": "gmd:distributionInfo/gmd:MD_Distribution",
+            "distributor": "gmd:distributionInfo/gmd:MD_Distribution/gmd:distributor/gmd:MD_Distributor/gmd:distributorContact/gmd:CI_ResponsibleParty[gmd:role/gmd:CI_RoleCode[@codeListValue='distributor']]/gmd:organisationName/gco:CharacterString",
             "transferOptions": "gmd:distributionInfo/gmd:MD_Distribution/gmd:transferOptions",
             "digital_trans_options": "gmd:distributionInfo/gmd:MD_Distribution/gmd:transferOptions/gmd:MD_DigitalTransferOptions",
             "online_resources": "//gmd:transferOptions/gmd:MD_DigitalTransferOptions/gmd:onLine/gmd:CI_OnlineResource",
@@ -126,13 +143,21 @@ class UpdateCSW(object):
             "temporalextent_start": "gmd:EX_TemporalExtent/gmd:extent/gml:TimePeriod/gml:beginPosition",
             "temporalextent_end": "gmd:EX_TemporalExtent/gmd:extent/gml:TimePeriod/gml:endPosition",
             "temporalextent_instant": "gmd:EX_TemporalExtent/gmd:extent/gml:TimeInstant/gml:timePosition",
-            "ci_date_type": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:citation/gmd:CI_Citation/gmd:date/gmd:CI_Date[gmd:dateType/gmd:CI_DateTypeCode/@codeListValue='{datetype}']/gmd:date"
+            "ci_date_type": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:citation/gmd:CI_Citation/gmd:date/gmd:CI_Date[gmd:dateType/gmd:CI_DateTypeCode/@codeListValue='{datetype}']/gmd:date",
+            "ref_system": "gmd:referenceSystemInfo/gmd:MD_ReferenceSystem/gmd:referenceSystemIdentifier/gmd:RS_Identifier/gmd:code/gco:CharacterString",
+            "north_extent": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:extent/gmd:EX_Extent/gmd:geographicElement/gmd:EX_GeographicBoundingBox/gmd:northBoundLatitude/gco:Decimal",
+            "south_extent": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:extent/gmd:EX_Extent/gmd:geographicElement/gmd:EX_GeographicBoundingBox/gmd:southBoundLatitude/gco:Decimal",
+            "east_extent": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:extent/gmd:EX_Extent/gmd:geographicElement/gmd:EX_GeographicBoundingBox/gmd:eastBoundLongitude/gco:Decimal",
+            "west_extent": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:extent/gmd:EX_Extent/gmd:geographicElement/gmd:EX_GeographicBoundingBox/gmd:westBoundLongitude/gco:Decimal",
+            "collective_title": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:citation/gmd:CI_Citation/gmd:collectiveTitle/gco:CharacterString",
+            "other_citation": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:citation/gmd:CI_Citation/gmd:otherCitationDetails/gco:CharacterString",
+            "maintenance_note": "gmd:metadataMaintenance/gmd:MD_MaintenanceInformation/gmd:maintenanceNote/gco:CharacterString",
+#             "dataset_uri": "gmd:dataSetURI/gco:CharacterString",
+            "parent": "gmd:parentIdentifier/gco:CharacterString"
+
         },
 
-            "dublin-core": {
-                "title": "dc:title"
-        }
-
+		#protocols for types of links
         }
         self.protocol_map = {
             "download": ["WWW:DOWNLOAD-1.0-ftp--download",
@@ -147,13 +172,16 @@ class UpdateCSW(object):
             "wcs_service": ["OGC:WCS"]
         }
 
+		#Topic categories.  These need to be spelled and cased as below to register in GeoNetwork
         self.topic_categories = [
-            'intelligenceMilitary', 'environment',
-            'geoscientificinformation', 'elevation', 'utilitiesCommunications',
-            'structure', 'oceans', 'planningCadastre', 'inlandWaters',
+            'Intelligence military', 'environment',
+            'Geoscientific information', 'elevation', 'Utilities communications',
+            'structure', 'oceans', 'Planning cadastre', 'Inland waters',
             'boundaries', 'society', 'biota', 'health', 'location',
-            'climatologyMeteorologyAtmosphere', 'transportation', 'farming',
-            'imageryBaseMapsEarthCover', 'economy']
+            'Climatology, meteorology, atmosphere', 'transportation', 'farming',
+            'Imagery base maps earth cover', 'economy']
+
+
 
     @staticmethod
     def get_namespaces():
@@ -182,15 +210,17 @@ class UpdateCSW(object):
         self.record_online_resources = self.record_etree.findall(
             self.XPATHS[self.schema]["online_resources"], self.namespaces)
 
+
+
+#PRIMARY FUNCTIONS FOR UPDATING AND CREATING ELEMENTS
     def _simple_element_update(self, uuid, new_value, xpath=None, element=None):
         """
+        Primary function for most records.
         Updates single element of record. Nothing fancy.
         Elements like abstract and title.
-
         Positional arguments:
         uuid -- the unique id of the record to be updated
         new_value -- the new value supplied from the csv
-
         Keyword arguments (need one and only one):
         xpath -- must follow straight from the root element
         element -- match a name in self.XPATHS for the current schema
@@ -209,6 +239,10 @@ class UpdateCSW(object):
         original_path = path
         elem = []
 
+		#looks for existence of path, if not there, moves up a level until an element node is present.
+		#sets path based upon what exists.
+		#will not work for missing base level elements that are not contained in another parent element beyond the root.
+
         while len(elem) == 0:
             elem = tree.xpath(path, namespaces=self.namespaces)
             if len(elem) == 0:
@@ -219,14 +253,21 @@ class UpdateCSW(object):
                 )
                 path = "/".join(path.split("/")[:-1])
 
+		#if there is an element ? and if the path exists
         if len(elem) > 0 and path == original_path:
             log.debug("Found the path: \n {p}".format(p=path))
+
+			#checks to see if the text is the same as the new value, if not, changes
             if elem[0].text != new_value:
                 elem[0].text = new_value
                 self.tree_changed = True
+
+			#if it is the same, just reports that
             else:
                 log.info("Value for \n {p} \n already set to: {v}".format(
                     p=path.split("/")[-2], v=new_value))
+
+		#if there is an element to be created but the path isn't there
         elif len(elem) > 0 and path != original_path:
             elements_to_create = [
                 e for e in original_path.split("/") if e not in path]
@@ -236,6 +277,7 @@ class UpdateCSW(object):
                 element should be there.")
             self._simple_element_update(uuid, new_value, xpath=original_path)
 
+	#called at the end of _simple_element_update if needed.
     def _create_elements(self, start_element, list_of_element_names):
         tree = self.record_etree
         base_element = start_element
@@ -250,10 +292,202 @@ class UpdateCSW(object):
             log.debug("Created {n}".format(n=elem_name))
             self.tree_changed = True
 
+
+    def _base_element_update(self, uuid, new_value, xpath=None, element=None):
+        """
+        Trying to use for un-nested elements.
+        similar to simple_element_update, but removed while statement.
+        Will single element of record if the element exists.
+        Will not create element.
+
+        Positional arguments:
+        uuid -- the unique id of the record to be updated
+        new_value -- the new value supplied from the csv
+        Keyword arguments (need one and only one):
+        xpath -- must follow straight from the root element
+        element -- match a name in self.XPATHS for the current schema
+        """
+        if xpath:
+            path = xpath
+        elif element:
+            path = self.XPATHS[self.schema][element]
+        else:
+            log.error("_base_element_update: No xpath or element provided")
+            return
+
+        tree = self.record_etree
+
+        original_path = path
+        elem = []
+
+		# looks for existence of path
+		# does not work as needed yet 12-28-2016 km
+        if len(elem) == 0:
+            elem = tree.xpath(path, namespaces=self.namespaces)
+
+            log.debug(
+                    "Did not find \n {p} \n Setting root as path.".format(
+                        p=path
+                    )
+                )
+
+#non-working experiements to add base level elements.
+        #     root = tree.getroot()
+# #             path = root
+# #             schemaLocation="http://www.isotc211.org/2005/gmd http://www.isotc211.org/2005/gmd/gmd.xsd http://www.isotc211.org/2005/gmx http://www.isotc211.org/2005/gmx/gmx.xsd http://www.isotc211.org/2005/srv http://schemas.opengis.net/iso/19139/20060504/srv/srv.xsd"
+#             gmd="http://www.isotc211.org/2005/gmd"
+# #             srv="http://www.isotc211.org/2005/srv"
+# #             gco="http://www.isotc211.org/2005/gco"
+# #             gts="http://www.isotc211.org/2005/gts"
+# #             gml="http://www.opengis.net/gml"
+#
+#             #
+# #             root=etree.Element("{" + pico + "}record", attrib={"{" + xsi + "}schemaLocation" : schemaLocation}, nsmap=ns)
+# #             etree.SubElement(root, "{" + dc + "}" + "identifier").text = "work_3117"
+# #             ns = {"gmd": gmd, "srv": srv, "gco": gco, "gts": gts, "gml": gml }\
+#
+#             newKid = etree.Element("+ gmd + parentIdentifier/ + gco +CharacterString")
+#             root.insert(0, newKid)
+#             start = root[:1]
+#             end   = root[-1:]
+#             log.debug("inserted element")
+
+
+#              path = original_path
+#             elem.insert(1, original_path)
+#              rx = etree.fromstring('''<gmd:parentIdentifier xmlns:srv="http://www.isotc211.org/2005/srv" xmlns:gco="http://www.isotc211.org/2005/gco" xmlns:gts="http://www.isotc211.org/2005/gts" xmlns:gml="http://www.opengis.net/gml"><gco:CharacterString>{new_value}</gco:CharacterString></gmd:parentIdentifier>''')
+
+
+
+
+		#checks if there is an element ? and if the path exists
+        if len(elem) > 0 and path == original_path:
+            log.debug("Found the path: \n {p}".format(p=path))
+			#checks to see if the text is the same as the new value, if not, changes
+            if elem[0].text != new_value:
+                elem[0].text = new_value
+                self.tree_changed = True
+
+		#if it is the same, just reports that
+            else:
+                log.info("Value for \n {p} \n already set to: {v}".format(
+                    p=path.split("/")[-2], v=new_value))
+
+       #if there is an element to be created but the path isn't there
+        elif len(elem) > 0 and path != original_path:
+            elements_to_create = [
+                e for e in original_path.split("/") if e not in path]
+            self._create_elements(elem[0], elements_to_create)
+            log.debug(
+                "Recursing to _simple_element_update now that the \
+                element should be there.")
+            self._base_element_update(uuid, new_value, xpath=original_path)
+
+
+    #creates elements that can have multiple values
+    #only for keywords
+    def _make_new_multiple_element(self, element_name, value):
+        # TODO abstract beyond keywords using element_name
+
+        element = etree.Element("{ns}keyword".format(ns="{" + self.namespaces["gmd"] + "}"),
+                                nsmap=self.namespaces)
+        child_element = etree.SubElement(element,
+                                         "{ns}CharacterString".format(ns="{" + self.namespaces["gco"] + "}"))
+        child_element.text = value
+        return element
+
+    def _multiple_element_update(self, uuid, new_vals_string, multiple_element_name):
+        """
+        Keyword specific at the moment
+        """
+        log.debug("NEW VALUE INPUT: " + new_vals_string)
+        new_vals_list = new_vals_string.split(self.INNER_DELIMITER)
+
+        if len(new_vals_list) == 1 and new_vals_list[0] == "":
+            return
+
+        tree = self.record_etree
+        tree_changed = False
+
+        base_desc_kw = tree.findall(self.XPATHS[self.schema][multiple_element_name + "_base"],
+                                    namespaces=self.namespaces)
+
+        if len(base_desc_kw) == 0:
+            # "descriptive_keywords"            :"gmd:identificationInfo/gmd:MD_DataIdentification/gmd:descriptiveKeywords",
+            # "md_data_identification"          :"gmd:identificationInfo/gmd:MD_DataIdentification",
+            new_desc_kw = self._parse_snippet(multiple_element_name + ".xml")
+            existing_desc_kw = tree.findall(self.XPATHS[self.schema]["descriptive_keywords"],
+                                            namespaces=self.namespaces)
+            if len(existing_desc_kw) > 0:
+                existing_desc_kw[-1].addnext(new_desc_kw)
+                self.tree_changed = True
+            else:
+                md_data_identification = tree.find(self.XPATHS[self.schema]["md_data_identification"],
+                                                   namespaces=self.namespaces)
+                if md_data_identification is not None:
+                    md_data_identification.append(new_desc_kw)
+                    self.tree_changed = True
+            log.debug(
+                "Created descriptiveKeywords, now recursing to add keywords.")
+            self._multiple_element_update(
+                uuid, new_vals_string, multiple_element_name)
+
+        xpath = self.XPATHS[self.schema][multiple_element_name]
+        existing_vals = tree.findall(xpath, namespaces=self.namespaces)
+
+        if len(existing_vals) > 0:
+            md_keywords = existing_vals[0].getparent().getparent()
+            existing_vals_list = [i.text for i in existing_vals]
+
+            log.debug("EXISTING VALUES: " + "| ".join(existing_vals_list))
+            add_values = list(set(new_vals_list) - set(existing_vals_list))
+            delete_values = list(set(existing_vals_list) - set(new_vals_list))
+
+            log.debug("VALUES TO ADD: " + "| ".join(add_values))
+            log.debug("VALUES TO DELETE: " + "| ".join(delete_values))
+
+        else:
+            delete_values = []
+            add_values = new_vals_list
+            md_keywords = base_desc_kw[0].getparent().getparent()
+            log.debug("VALUES TO ADD: " + ", ".join(add_values))
+
+        for delete_value in delete_values:
+            # TODO abstract out keyword specifics
+            del_ele = tree.xpath(tree.getpath(
+                md_keywords) + "/gmd:keyword/gco:CharacterString[text()='{val}']".format(val=delete_value), namespaces=self.namespaces)
+            if len(del_ele) == 1:
+                log.debug("Deleted: {v}".format(v=delete_value))
+                p = del_ele[0].getparent()
+                p.remove(del_ele[0])
+                pp = p.getparent()
+                pp.remove(p)
+                tree_changed = True
+
+        for value in add_values:
+
+            # TODO handle specific things like this? maybe another dict of
+            # elements that have a controlled vocab?
+            # if value not in self.topic_categories:
+            #     log.warn("Invalid topic category not added: " + value)
+            #     continue
+
+            new_element = self._make_new_multiple_element(
+                multiple_element_name, value)
+            md_keywords.append(new_element)
+            tree_changed = True
+
+        if tree_changed:
+            self.tree_changed = True
+
+
+# LINK UPDATE FUNCTIONS
+
+
+
     def _check_for_links_to_update(self, link_type):
         """
         Return a list of links that match a given type.
-
         Positional argument:
         link_type -- The type of link to look for. download, information,
             esri_service, and wms_service are current values for link_type)
@@ -272,7 +506,6 @@ class UpdateCSW(object):
     def _add_protocol_to_resource(self, resource, link_type):
         """
         Creates a protocol element and its text for a given online resource.
-
         Positional arguments:
         resource -- A CI_Online_Resource currently lacking a protocol.
         link_type -- The type of link, which determines the protocol applied.
@@ -300,7 +533,6 @@ class UpdateCSW(object):
         """
         Matches inputted link to existing resources without
         protocols and if successful, adds protocol.
-
         Positional arguments:
         new_link -- The link to search for
         link_type -- The type of link, which us be used to create the protocol
@@ -321,7 +553,6 @@ class UpdateCSW(object):
         """
         Create a new onLine element.
         Assumes that gmd:MD_DigitalTransferOptions exists.
-
         Positional arguments:
         new_link -- The link to search for
         link_type -- The type of link, which us be used to create the protocol
@@ -530,100 +761,6 @@ class UpdateCSW(object):
             self._create_new_link(new_link, link_type)
             log.debug("Updated links: " + ", ".join(self._current_link_urls()))
 
-    def _make_new_multiple_element(self, element_name, value):
-        # TODO abstract beyond keywords using element_name
-
-        element = etree.Element("{ns}keyword".format(ns="{" + self.namespaces["gmd"] + "}"),
-                                nsmap=self.namespaces)
-        child_element = etree.SubElement(element,
-                                         "{ns}CharacterString".format(ns="{" + self.namespaces["gco"] + "}"))
-        child_element.text = value
-        return element
-
-    def _multiple_element_update(self, uuid, new_vals_string, multiple_element_name):
-        """
-        Keyword specific at the moment
-        """
-        log.debug("NEW VALUE INPUT: " + new_vals_string)
-        new_vals_list = new_vals_string.split(self.INNER_DELIMITER)
-
-        if len(new_vals_list) == 1 and new_vals_list[0] == "":
-            return
-
-        tree = self.record_etree
-        tree_changed = False
-
-        base_desc_kw = tree.findall(self.XPATHS[self.schema][multiple_element_name + "_base"],
-                                    namespaces=self.namespaces)
-
-        if len(base_desc_kw) == 0:
-            # "descriptive_keywords"            :"gmd:identificationInfo/gmd:MD_DataIdentification/gmd:descriptiveKeywords",
-            # "md_data_identification"          :"gmd:identificationInfo/gmd:MD_DataIdentification",
-            new_desc_kw = self._parse_snippet(multiple_element_name + ".xml")
-            existing_desc_kw = tree.findall(self.XPATHS[self.schema]["descriptive_keywords"],
-                                            namespaces=self.namespaces)
-            if len(existing_desc_kw) > 0:
-                existing_desc_kw[-1].addnext(new_desc_kw)
-                self.tree_changed = True
-            else:
-                md_data_identification = tree.find(self.XPATHS[self.schema]["md_data_identification"],
-                                                   namespaces=self.namespaces)
-                if md_data_identification is not None:
-                    md_data_identification.append(new_desc_kw)
-                    self.tree_changed = True
-            log.debug(
-                "Created descriptiveKeywords, now recursing to add keywords.")
-            self._multiple_element_update(
-                uuid, new_vals_string, multiple_element_name)
-
-        xpath = self.XPATHS[self.schema][multiple_element_name]
-        existing_vals = tree.findall(xpath, namespaces=self.namespaces)
-
-        if len(existing_vals) > 0:
-            md_keywords = existing_vals[0].getparent().getparent()
-            existing_vals_list = [i.text for i in existing_vals]
-
-            log.debug("EXISTING VALUES: " + "| ".join(existing_vals_list))
-            add_values = list(set(new_vals_list) - set(existing_vals_list))
-            delete_values = list(set(existing_vals_list) - set(new_vals_list))
-
-            log.debug("VALUES TO ADD: " + "| ".join(add_values))
-            log.debug("VALUES TO DELETE: " + "| ".join(delete_values))
-
-        else:
-            delete_values = []
-            add_values = new_vals_list
-            md_keywords = base_desc_kw[0].getparent().getparent()
-            log.debug("VALUES TO ADD: " + ", ".join(add_values))
-
-        for delete_value in delete_values:
-            # TODO abstract out keyword specifics
-            del_ele = tree.xpath(tree.getpath(
-                md_keywords) + "/gmd:keyword/gco:CharacterString[text()='{val}']".format(val=delete_value), namespaces=self.namespaces)
-            if len(del_ele) == 1:
-                log.debug("Deleted: {v}".format(v=delete_value))
-                p = del_ele[0].getparent()
-                p.remove(del_ele[0])
-                pp = p.getparent()
-                pp.remove(p)
-                tree_changed = True
-
-        for value in add_values:
-
-            # TODO handle specific things like this? maybe another dict of
-            # elements that have a controlled vocab?
-            # if value not in self.topic_categories:
-            #     log.warn("Invalid topic category not added: " + value)
-            #     continue
-
-            new_element = self._make_new_multiple_element(
-                multiple_element_name, value)
-            md_keywords.append(new_element)
-            tree_changed = True
-
-        if tree_changed:
-            self.tree_changed = True
-
     def _make_new_topic_element(self, cat_text):
         p = etree.Element("{gmd}topicCategory".format(
             gmd="{" + self.namespaces["gmd"] + "}"), nsmap=self.namespaces)
@@ -631,6 +768,27 @@ class UpdateCSW(object):
             gmd="{" + self.namespaces["gmd"] + "}"))
         c.text = cat_text
         return p
+
+
+#CITATION ELEMENTS
+
+    def NEW_title(self, uuid, new_title):
+        """
+        Updates title of record
+        """
+        if new_title != "" and new_title != "SKIP":
+            update = self._simple_element_update(
+                uuid, new_title, element="title")
+            log.info("updated title")
+
+    def NEW_collective_title(self, uuid, new_collective_title):
+        """
+        Updates collection of record
+        """
+        if new_collective_title != "" and new_collective_title != "SKIP":
+            update = self._simple_element_update(
+                uuid, new_collective_title, element="collective_title")
+            log.info("updated collection name")
 
     def NEW_abstract(self, uuid, new_abstract):
         """
@@ -641,32 +799,111 @@ class UpdateCSW(object):
                 uuid, new_abstract, element="abstract")
             log.info("updated abstract")
 
-    def NEW_publisher(self, uuid, new_publisher):
+    def NEW_other_citation(self, uuid, new_other_citation):
         """
-        Updates publisher of record
+        Updates geometry type of record for GeoBlacklight Metadata crosswalk
         """
-        if new_publisher != "" and new_publisher != "SKIP":
+        if new_other_citation != "" and new_other_citation != "SKIP":
             update = self._simple_element_update(
-                uuid, new_publisher, element="publisher")
-            log.info("updated publisher")
+                uuid, new_other_citation, element="other_citation")
+            log.info("updated other citation")
+
+
+    #can update but doesn't create new element
+    def NEW_parent(self, uuid, new_parent):
+        """
+        Updates parent ID
+        """
+
+        if new_parent != "" and new_parent != "SKIP":
+            update = self._base_element_update(
+				uuid, new_parent, element="parent")
+            log.info("updated parent record")
+
+
+
+#METADATA
+
+    def NEW_maintenance_note(self, uuid, new_maintenance_note):
+        """
+        Updates metadata maintenance note of record
+        """
+        if new_maintenance_note != "" and new_maintenance_note != "SKIP":
+            update = self._simple_element_update(
+                uuid, new_maintenance_note, element="maintenance_note")
+            log.info("updated metadata maintenance note")
+
+
+##    doesn't work - says no change even if there is one
+#     def NEW_dataset_uri(self, uuid, dataset_uri):
+#         """
+#         Updates datasetURI of record
+#         """
+#         if new_dataset_uri != "" and new_dataset_uri != "SKIP":
+#             update = self._base_element_update(
+#                 uuid, new_dataset_uri, element="dataset_uri")
+#             log.info("updated datasetURI")
+
+
+
+#SPATIAL
+
+    def NEW_ref_system(self, uuid, new_ref_system):
+        """
+        Updates reference system of record
+        """
+        if new_ref_system != "" and new_ref_system != "SKIP":
+            update = self._simple_element_update(
+                uuid, new_ref_system, element="ref_system")
+            log.info("updated reference system")
+
+    def NEW_north_extent(self, uuid, new_north_extent):
+        """
+        Updates north extent of record
+        """
+        if new_north_extent != "" and new_north_extent != "SKIP":
+            update = self._simple_element_update(
+                uuid, new_north_extent, element="north_extent")
+            log.info("updated north extent")
+
+    def NEW_south_extent(self, uuid, new_south_extent):
+        """
+        Updates south extent of record
+        """
+        if new_south_extent != "" and new_south_extent != "SKIP":
+            update = self._simple_element_update(
+                uuid, new_south_extent, element="south_extent")
+            log.info("updated south extent")
+
+    def NEW_east_extent(self, uuid, new_east_extent):
+        """
+        Updates east extent of record
+        """
+        if new_east_extent != "" and new_east_extent != "SKIP":
+            update = self._simple_element_update(
+                uuid, new_east_extent, element="east_extent")
+            log.info("updated east extent")
+
+    def NEW_west_extent(self, uuid, new_west_extent):
+        """
+        Updates west extent of record
+        """
+        if new_west_extent != "" and new_west_extent != "SKIP":
+            update = self._simple_element_update(
+                uuid, new_west_extent, element="west_extent")
+            log.info("updated west extent")
+
+
+#DISTRIBUTION
 
     def NEW_distribution_format(self, uuid, new_format):
         """
-        Updates abstract of record
+        Updates distribution format of record
         """
         if new_format != "" and new_format != "SKIP":
             update = self._simple_element_update(
                 uuid, new_format, element="distribution_format")
             log.info("updated distribution format")
-
-    def NEW_title(self, uuid, new_title):
-        """
-        Updates title of record
-        """
-        if new_title != "" and new_title != "SKIP":
-            update = self._simple_element_update(
-                uuid, new_title, element="title")
-            log.info("updated title")
 
     def NEW_link_download(self, uuid, new_link):
         if new_link != "" and new_link != "SKIP":
@@ -711,6 +948,9 @@ class UpdateCSW(object):
                     self._delete_link_elementset(link)
                     log.info("deleted link: {link}".format(
                         link=link_to_delete))
+
+
+#TOPICS AND KEYWORDS
 
     def NEW_topic_categories(self, uuid, new_topic_categories):
         """
@@ -1061,6 +1301,9 @@ class UpdateCSW(object):
         )
         log.info("updated geonames keywords")
 
+
+#DATES
+
     def _date_or_datetime(self, date_element):
         e = date_element.find("gco:Date", namespaces=self.namespaces)
         if e is None:
@@ -1238,10 +1481,10 @@ class UpdateCSW(object):
         self._update_temporal_extent(new_date, t_e_type)
 
     def _update_temporal_extent(self, new_date, temporal_extent_type):
-
+		'''only adds 4 digit year'''
         if new_date != "now":
-            new_date_parsed = parser.parse(new_date)
-            iso_date = new_date_parsed.isoformat()[:10]
+            new_date_parsed = parser.parse(new_date,ignoretz=True)
+            iso_date = new_date_parsed.isoformat()[:4]
         else:
             iso_date = "now"
 
@@ -1305,32 +1548,59 @@ class UpdateCSW(object):
             update = self._update_temporal_extent(new_date, "instant")
             log.info("updated temporal instant date!")
 
-    def NEW_contact_organization(self):
-        # stub
-        pass
 
-    def NEW_contact_individual(self):
-        # stub
-        pass
+#CONTACTS
+	#these elements must be present, won't create new
 
-    def update_timestamp(self, uuid):
-        ts = datetime.now().isoformat()
-        val = ts
-        tree = self.record_etree
-        pn = self.XPATHS[self.schema]["timestamp"] + "/gco:DateTime"
-        dateStamp = tree.find(pn, namespaces=self.namespaces)
+    def NEW_publisher(self, uuid, new_publisher):
+        """
+        Updates publisher of record
+        """
+        if new_publisher != "" and new_publisher != "SKIP":
+            update = self._simple_element_update(
+                uuid, new_publisher, element="publisher")
+            log.info("updated publisher")
 
-        if dateStamp is None:
-            pn = self.XPATHS[self.schema]["timestamp"] + "/gco:Date"
-            dateStamp = tree.find(pn, namespaces=self.namespaces)
-            val = ts[:10]
+    def NEW_originator(self, uuid, new_originator):
+        """
+        Updates originator of record
+        """
+        if new_originator != "" and new_originator != "SKIP":
+            update = self._simple_element_update(
+                uuid, new_originator, element="originator")
+            log.info("updated originator")
 
-        return self.csw.transaction(
-            ttype="update",
-            typename='csw:Record',
-            propertyname=pn,
-            propertyvalue=val,
-            identifier=uuid)
+    def NEW_distributor(self, uuid, new_distributor):
+        """
+        Updates distributor of record
+        """
+        if new_distributor != "" and new_distributor != "SKIP":
+            update = self._simple_element_update(
+                uuid, new_distributor, element="distributor")
+            log.info("updated distributor")
+
+
+#PROCESS
+
+##    throws error
+#     def update_timestamp(self, uuid):
+#         ts = datetime.now().isoformat()
+#         val = ts
+#         tree = self.record_etree
+#         pn = self.XPATHS[self.schema]["timestamp"] + "/gco:DateTime"
+#         dateStamp = tree.find(pn, namespaces=self.namespaces)
+#
+#         if dateStamp is None:
+#             pn = self.XPATHS[self.schema]["timestamp"] + "/gco:Date"
+#             dateStamp = tree.find(pn, namespaces=self.namespaces)
+#             val = ts[:10]
+#
+#         return self.csw.transaction(
+#             ttype="update",
+#             typename='csw:Record',
+#             propertyname=pn,
+#             propertyvalue=val,
+#             identifier=uuid)
 
     def _get_etree_for_record(self, uuid):
         """
@@ -1429,7 +1699,7 @@ class UpdateCSW(object):
                     record=new_xml,
                     identifier=self.uuid)
                 time.sleep(2)
-                self.update_timestamp(self.uuid)
+               #  self.update_timestamp(self.uuid)
                 log.info("Updated: {uuid}\n\n".format(uuid=self.uuid))
             else:
                 log.info("No change: {uuid}\n\n".format(uuid=self.uuid))
