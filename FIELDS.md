@@ -4,6 +4,7 @@ When working with a CSV exported from GeoNetwork, you'll need to either:
 1. **PREFERRED** Insert a new column, name it according to the table below and add your new values into it. (empty cells will be ignored, so if you want to null out a value, too bad I suppose. Let me know if you really need to do this and I can work in that functionality).
 2. Change column names to the appropriate Column Header listed below (this is not really well tested, but ought to work, I guess)
 
+
 | **Name**                       | **Column Header**        |
 |:------------------------------:|:-------------------------|
 | **Title**                      | NEW_title                |
@@ -18,3 +19,13 @@ When working with a CSV exported from GeoNetwork, you'll need to either:
 | **Distribution Format**        | NEW_distribution_format  |
 | **Date Published**             | NEW_date_publication     |
 | **Date Revised**               | NEW_date_revision        |
+| **Temporal Extent Start**      | NEW_temporal_start       |
+| **Temporal Extent End**        | NEW_temporal_end         |
+| **Bounding Box: north**	     | NEW_north_extent         |
+| **Bounding Box: south**        | NEW_south_extent         |
+| **Bounding Box: east** 	     | NEW_east_extent          |
+| **Bounding Box: west**         | NEW_west_extent          |
+| **Reference System Code**      | NEW_ref_system           |
+| **Collection**	             | NEW_collective_title     |
+| **Geometry Type**              | NEW_other_citation       |
+| **Metadata Maintenance Note**  | NEW_maintenance_note     |
