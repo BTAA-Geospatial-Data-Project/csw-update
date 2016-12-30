@@ -55,14 +55,14 @@ When working with a CSV exported from GeoNetwork, you'll need to either:
 Dec 30, 2016
 
 Added the following elements:
--Bounding Box extents
--Reference System
--CollectiveTitle
--Geometry Type (as text string within otherCitation)
--Metadata Maintenance Note
--Originator
--Publisher
--Distributor
+*Bounding Box extents
+*Reference System
+*CollectiveTitle
+*Geometry Type (as text string within otherCitation)
+*Metadata Maintenance Note
+*Originator
+*Publisher
+*Distributor
 
 Changed format of Temporal Extent to 4 digit year
 
