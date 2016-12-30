@@ -38,6 +38,33 @@ When working with a CSV exported from GeoNetwork, you'll need to either:
 | **Distribution Format**        | NEW_distribution_format  |
 | **Date Published**             | NEW_date_publication     |
 | **Date Revised**               | NEW_date_revision        |
-| **Temporal Extent Start**               | NEW_temporal_start        |
-| **Temporal Extent End**               | NEW_temporal_end        |
-| **Temporal Extent Instant**               | NEW_temporal_instant       |
+| **Temporal Extent Start**      | NEW_temporal_start       |
+| **Temporal Extent End**        | NEW_temporal_end         |
+| **Bounding Box: north**	     | NEW_north_extent         |
+| **Bounding Box: south**        | NEW_south_extent         |
+| **Bounding Box: east** 	     | NEW_east_extent          |
+| **Bounding Box: west**         | NEW_west_extent          |
+| **Reference System Code**      | NEW_ref_system           |
+| **Collection**	             | NEW_collective_title     |
+| **Geometry Type**              | NEW_other_citation       |
+| **Metadata Maintenance Note**  | NEW_maintenance_note     |
+\
+
+
+#Change Log
+Dec 30, 2016
+
+Added the following elements:
+-Bounding Box extents
+-Reference System
+-CollectiveTitle
+-Geometry Type (as text string within otherCitation)
+-Metadata Maintenance Note
+-Originator
+-Publisher
+-Distributor
+
+Changed format of Temporal Extent to 4 digit year
+
+Changed input format of Topic Categories spellings
+
