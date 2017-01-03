@@ -2,6 +2,7 @@
 #Created for Big Ten Academic Alliance Geospatial Data Project
 #2016
 
+#stripped down version without keyword thesaurus or datestamp
 
 
 #!/usr/bin/env python2.7
@@ -81,7 +82,6 @@ class UpdateCSW(object):
             "NEW_keywords_theme": self.NEW_keywords_theme,
             "NEW_keywords_theme_gemet_name": self.NEW_keywords_theme_gemet_name,
             "NEW_keywords_place": self.NEW_keywords_place,
-#             "NEW_keywords_place_geonames": self.NEW_keywords_place_geonames,
             "NEW_date_publication": self.NEW_date_publication,
             "NEW_date_revision": self.NEW_date_revision,
             "NEW_temporal_end": self.NEW_temporal_end,
@@ -129,10 +129,8 @@ class UpdateCSW(object):
             "distributor_distribution_link": "gmd:distributionInfo/gmd:MD_Distribution/gmd:distributor[{distributor_index}]/gmd:MD_Distributor/gmd:distributorTransferOptions[{index}]/gmd:MD_DigitalTransferOptions/gmd:onLine/gmd:CI_OnlineResource/gmd:linkage/gmd:URL",
             "keywords_theme": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:descriptiveKeywords/gmd:MD_Keywords/gmd:type/gmd:MD_KeywordTypeCode[@codeListValue='theme']/../../gmd:keyword/gco:CharacterString",
             "keywords_theme_base": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:descriptiveKeywords/gmd:MD_Keywords/gmd:type/gmd:MD_KeywordTypeCode[@codeListValue='theme']",
-            "keywords_theme_gemet": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:descriptiveKeywords/gmd:MD_Keywords/gmd:thesaurusName/gmd:CI_Citation/gmd:title/gco:CharacterString[text()='GEMET']",
             "keywords_place": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:descriptiveKeywords/gmd:MD_Keywords/gmd:type/gmd:MD_KeywordTypeCode[@codeListValue='place']/../../gmd:keyword/gco:CharacterString",
             "keywords_place_base": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:descriptiveKeywords/gmd:MD_Keywords/gmd:type/gmd:MD_KeywordTypeCode[@codeListValue='place']",
-#             "keywords_place_geonames": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:descriptiveKeywords/gmd:MD_Keywords/gmd:thesaurusName/gmd:CI_Citation/gmd:title/gco:CharacterString[text()='GeoNames']",
             "descriptive_keywords": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:descriptiveKeywords",
             "md_data_identification": "gmd:identificationInfo/gmd:MD_DataIdentification",
             "topic_categories": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:topicCategory/gmd:MD_TopicCategoryCode",
@@ -330,33 +328,6 @@ class UpdateCSW(object):
                         p=path
                     )
                 )
-
-#non-working experiements to add base level elements.
-        #     root = tree.getroot()
-# #             path = root
-# #             schemaLocation="http://www.isotc211.org/2005/gmd http://www.isotc211.org/2005/gmd/gmd.xsd http://www.isotc211.org/2005/gmx http://www.isotc211.org/2005/gmx/gmx.xsd http://www.isotc211.org/2005/srv http://schemas.opengis.net/iso/19139/20060504/srv/srv.xsd"
-#             gmd="http://www.isotc211.org/2005/gmd"
-# #             srv="http://www.isotc211.org/2005/srv"
-# #             gco="http://www.isotc211.org/2005/gco"
-# #             gts="http://www.isotc211.org/2005/gts"
-# #             gml="http://www.opengis.net/gml"
-#
-#             #
-# #             root=etree.Element("{" + pico + "}record", attrib={"{" + xsi + "}schemaLocation" : schemaLocation}, nsmap=ns)
-# #             etree.SubElement(root, "{" + dc + "}" + "identifier").text = "work_3117"
-# #             ns = {"gmd": gmd, "srv": srv, "gco": gco, "gts": gts, "gml": gml }\
-#
-#             newKid = etree.Element("+ gmd + parentIdentifier/ + gco +CharacterString")
-#             root.insert(0, newKid)
-#             start = root[:1]
-#             end   = root[-1:]
-#             log.debug("inserted element")
-
-
-#              path = original_path
-#             elem.insert(1, original_path)
-#              rx = etree.fromstring('''<gmd:parentIdentifier xmlns:srv="http://www.isotc211.org/2005/srv" xmlns:gco="http://www.isotc211.org/2005/gco" xmlns:gts="http://www.isotc211.org/2005/gts" xmlns:gml="http://www.opengis.net/gml"><gco:CharacterString>{new_value}</gco:CharacterString></gmd:parentIdentifier>''')
-
 
 
 
@@ -1047,44 +1018,6 @@ class UpdateCSW(object):
                 print("making new dk")
                 return etree.SubElement(md_di, "{ns}descriptiveKeywords".format(ns="{" + self.namespaces["gmd"] + "}"), nsmap=self.namespaces)
 
-#     def _make_new_keyword_thesaurus_elements(self, thesaurus_name):
-#         tree = self.record_etree
-#         dk = tree.findall(
-#             self.XPATHS[self.schema]["descriptive_keywords"],
-#             namespaces=self.namespaces
-#         )
-#         thesaurus = self._parse_snippet(
-#             "thesaurus_{n}.xml".format(n=thesaurus_name)
-#         )
-#         elem = None
-#
-#         if len(dk) > 0:
-#             elem = dk[-1]
-#         else:
-#             md_di = tree.find(
-#                 self.XPATHS[self.schema]["md_data_identification"],
-#                 namespaces=self.namespaces
-#             )
-#
-#             # ATM I can't think of a better way to make sure a fresh desc kw
-#             # elem gets placed in the correct spot.
-#             potential_siblings = [
-#                 "gmd:resourceFormat", "gmd:graphicOverview",
-#                 "gmd:resourceMaintenance", "gmd:pointOfContact", "gmd:status",
-#                 "gmd:credit", "gmd:purpose", "gmd:abstract"]
-#
-#             for i in potential_siblings:
-#                 log.debug("Looking for: {e}".format(e=i))
-#                 elem = md_di.find(i, namespaces=self.namespaces)
-#                 if elem is not None:
-#                     log.debug("Found: {e}".format(e=i))
-#                     break
-#
-#         elem.addnext(thesaurus)
-#         return elem.getnext().find(
-#             "gmd:MD_Keywords",
-#             namespaces=self.namespaces
-#         )
 
     def _make_new_keyword_anchor(self, value, uri, parent_node):
         element = etree.Element(
@@ -1112,194 +1045,6 @@ class UpdateCSW(object):
             "{ns}CharacterString".format(ns="{" + self.namespaces["gco"] + "}"))
         child_element.text = value
         parent_node.insert(0, element)
-
-#     def _keywords_thesaurus_update(
-#             self,
-#             uuid,
-#             new_vals_string,
-#             ids=None,
-#             kw_type=None,
-#             thesaurus=None):
-#         """
-#         This is heinous. I'm sorry.
-#         """
-#         log.info("KEYWORD TYPE: {t}".format(t=kw_type))
-#         log.info("THESAURUS: {t}".format(t=thesaurus))
-#         log.info("NEW VALUE INPUT: " + new_vals_string)
-#
-#         new_vals_list = new_vals_string.split(self.INNER_DELIMITER)
-#
-#         if ids:
-#             new_ids_list = ids.split(self.INNER_DELIMITER)
-#
-#             if len(new_ids_list) == 1 and new_ids_list[0] == "":
-#                 return
-#
-#         if len(new_vals_list) == 1 and new_vals_list[0] == "":
-#             return
-#
-#         tree = self.record_etree
-#
-#         thesaurus_xpath = self.XPATHS[self.schema][
-#             "keywords_{kw_type}_{thesaurus}".format(
-#                 kw_type=kw_type,
-#                 thesaurus=thesaurus)]
-#         existing_thesaurus = tree.xpath(
-#             thesaurus_xpath,
-#             namespaces=self.namespaces
-#         )
-#
-#         if len(existing_thesaurus) == 0:
-#             md_kw = self._make_new_keyword_thesaurus_elements(thesaurus)
-#
-#             if ids:
-#                 for index, value in enumerate(new_vals_list):
-#                     self._make_new_keyword_anchor(
-#                         value, new_ids_list[index], md_kw)
-#                     self.tree_changed = True
-#             else:
-#                 for value in new_vals_list:
-#                     self._make_new_keyword_text(value, md_kw)
-#                     self.tree_changed = True
-#         else:
-#             existing_vals = existing_thesaurus[0].getparent().getparent().getparent(
-#             ).getparent().findall("gmd:keyword/*", namespaces=self.namespaces)
-#             existing_vals_parent = existing_vals[0].getparent().getparent()
-#             existing_vals_list = [i.text for i in existing_vals]
-#
-#             log.info("EXISTING VALUES: " + ", ".join(existing_vals_list))
-#
-#             add_values = list(set(new_vals_list) - set(existing_vals_list))
-#             delete_values = list(set(existing_vals_list) - set(new_vals_list))
-#
-#             # TODO can't handle going between anchor/text, but i don't
-#             # care!!!!! hahahahha
-#             if ids:
-#                 # Are these even necessary? Not doing anything with em anyway
-#                 existing_ids = [i.get("{{ns}}href".format(
-#                     ns="{" + self.namespaces["xlink"] + "}")) for i in existing_vals]
-#                 add_ids = list(set(new_ids_list) - set(existing_ids))
-#                 delete_ids = list(set(existing_ids) - set(new_ids_list))
-#
-#             log.info("VALUES TO ADD: " + ", ".join(add_values))
-#             log.info("VALUES TO DELETE: " + ", ".join(delete_values))
-#
-#             for delete_value in delete_values:
-#                 # TODO abstract out keyword specifics
-#                 del_ele = tree.xpath("//gmd:keyword/*[text()='{val}']".format(
-#                     val=delete_value), namespaces=self.namespaces)
-#                 if len(del_ele) == 1:
-#                     p = del_ele[0].getparent()
-#                     p.remove(del_ele[0])
-#                     pp = p.getparent()
-#                     pp.remove(p)
-#                     self.tree_changed = True
-#
-#             for value in add_values:
-#
-#                 if ids:
-#                     self._make_new_keyword_anchor(
-#                         value,
-#                         add_ids[index],
-#                         existing_vals_parent
-#                     )
-#                 else:
-#                     self._make_new_keyword_text(value, existing_vals_parent)
-#                 self.tree_changed = True
-#
-#     def _keywords_theme_gemet_update(
-#             self,
-#             uuid,
-#             new_vals_string,
-#             new_ids_string):
-#         """
-#         This is heinous. I'm sorry.
-#         """
-#         log.info("NEW VALUE INPUT: " + new_vals_string)
-#
-#         new_vals_list = new_vals_string.split(self.INNER_DELIMITER)
-#         new_ids_list = new_ids_string.split(self.INNER_DELIMITER)
-#
-#         if len(new_vals_list) == 1 and new_vals_list[0] == "" or \
-#                 len(new_ids_list) == 1 and new_ids_list[0] == "":
-#             return
-#
-#         tree = self.record_etree
-#         thesaurus_xpath = self.XPATHS[self.schema]["keywords_theme_gemet"]
-#         existing_thesaurus = tree.xpath(
-#             thesaurus_xpath,
-#             namespaces=self.namespaces
-#         )
-#
-#         if len(existing_thesaurus) == 0:
-#             md_kw = self._make_new_keyword_thesaurus_elements()
-#             self.tree_changed = True
-#
-#             for index, value in enumerate(new_vals_list):
-#                 self._make_new_keyword_anchor(
-#                     value,
-#                     new_ids_list[index],
-#                     md_kw
-#                 )
-#
-#         else:
-#             existing_vals = existing_thesaurus[0].getparent().getparent().getparent(
-#             ).getparent().findall("gmd:keyword/gmx:Anchor", namespaces=self.namespaces)
-#             existing_vals_parent = existing_vals[0].getparent().getparent()
-#             existing_vals_list = [i.text for i in existing_vals]
-#             existing_ids = [i.get("{{ns}}href".format(
-#                 ns="{" + self.namespaces["xlink"] + "}")) for i in existing_vals]
-#
-#             log.info("EXISTING VALUES: " + ", ".join(existing_vals_list))
-#
-#             add_values = list(set(new_vals_list) - set(existing_vals_list))
-#             add_ids = list(set(new_ids_list) - set(existing_ids))
-#             delete_values = list(set(existing_vals_list) - set(new_vals_list))
-#             delete_ids = list(set(existing_ids) - set(new_ids_list))
-#
-#             log.info("VALUES TO ADD: " + ", ".join(add_values))
-#             log.info("VALUES TO DELETE: " + ", ".join(delete_values))
-#
-#             for delete_value in delete_values:
-#                 # TODO abstract out keyword specifics
-#                 del_ele = tree.xpath(
-#                     "//gmd:keyword/gmx:Anchor[text()='{val}']".format(
-#                         val=delete_value),
-#                     namespaces=self.namespaces)
-#                 if len(del_ele) == 1:
-#                     p = del_ele[0].getparent()
-#                     p.remove(del_ele[0])
-#                     pp = p.getparent()
-#                     pp.remove(p)
-#                     self.tree_changed = True
-#
-#             for value in add_values:
-#                 self._make_new_keyword_anchor(
-#                     value,
-#                     add_ids[index],
-#                     existing_vals_parent
-#                 )
-#                 self.tree_changed = True
-#
-#     def NEW_keywords_theme_gemet_name(self, uuid, gemet_names):
-#         gemet_ids = self.row["NEW_keywords_theme_gemet_id"]
-#         self._keywords_thesaurus_update(
-#             uuid,
-#             gemet_names,
-#             ids=gemet_ids,
-#             kw_type="theme",
-#             thesaurus="gemet"
-#         )
-#         log.info("updated gemet keywords")
-
-#     def NEW_keywords_place_geonames(self, uuid, geonames):
-#         self._keywords_thesaurus_update(
-#             uuid,
-#             geonames,
-#             kw_type="place",
-#             thesaurus="geonames"
-#         )
-#         log.info("updated geonames keywords")
 
 
 #DATES
@@ -1582,25 +1327,6 @@ class UpdateCSW(object):
 
 #PROCESS
 
-##    throws error
-#     def update_timestamp(self, uuid):
-#         ts = datetime.now().isoformat()
-#         val = ts
-#         tree = self.record_etree
-#         pn = self.XPATHS[self.schema]["timestamp"] + "/gco:DateTime"
-#         dateStamp = tree.find(pn, namespaces=self.namespaces)
-#
-#         if dateStamp is None:
-#             pn = self.XPATHS[self.schema]["timestamp"] + "/gco:Date"
-#             dateStamp = tree.find(pn, namespaces=self.namespaces)
-#             val = ts[:10]
-#
-#         return self.csw.transaction(
-#             ttype="update",
-#             typename='csw:Record',
-#             propertyname=pn,
-#             propertyvalue=val,
-#             identifier=uuid)
 
     def _get_etree_for_record(self, uuid):
         """
