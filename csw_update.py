@@ -1481,7 +1481,7 @@ class UpdateCSW(object):
         self._update_temporal_extent(new_date, t_e_type)
 
     def _update_temporal_extent(self, new_date, temporal_extent_type):
-		'''only adds 4 digit year'''
+		#only adds 4 digit year
         if new_date != "now":
             new_date_parsed = parser.parse(new_date,ignoretz=True)
             iso_date = new_date_parsed.isoformat()[:4]
