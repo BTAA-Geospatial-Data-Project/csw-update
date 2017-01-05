@@ -80,7 +80,6 @@ class UpdateCSW(object):
             "NEW_topic_categories": self.NEW_topic_categories,
             "NEW_abstract": self.NEW_abstract,
             "NEW_keywords_theme": self.NEW_keywords_theme,
-            "NEW_keywords_theme_gemet_name": self.NEW_keywords_theme_gemet_name,
             "NEW_keywords_place": self.NEW_keywords_place,
             "NEW_date_publication": self.NEW_date_publication,
             "NEW_date_revision": self.NEW_date_revision,
