@@ -53,6 +53,12 @@ When working with a CSV exported from GeoNetwork, you'll need to either:
 
 
 #Change Log
+March 20, 2017
+Added the following element:
+*Metadata Link*
+Development will continue on update.py.  csw-update.py will be kept as reference version of original script.
+
+
 Dec 30, 2016
 
 Added the following elements:
