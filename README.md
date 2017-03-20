@@ -35,6 +35,7 @@ When working with a CSV exported from GeoNetwork, you'll need to either:
 | **Information Link**           | NEW_link_information     |
 | **Esri Web Service Link**      | NEW_link_service_esri    |
 | **Web Map Service (WMS) Link** | NEW_link_service_wms     |
+| **Metadata Link**              | NEW_link_metadata    |
 | **Distribution Format**        | NEW_distribution_format  |
 | **Date Published**             | NEW_date_publication     |
 | **Date Revised**               | NEW_date_revision        |
@@ -48,7 +49,7 @@ When working with a CSV exported from GeoNetwork, you'll need to either:
 | **Collection**	             | NEW_collective_title     |
 | **Geometry Type**              | NEW_other_citation       |
 | **Metadata Maintenance Note**  | NEW_maintenance_note     |
-\
+
 
 
 #Change Log
