@@ -76,6 +76,7 @@ class UpdateCSW(object):
             "NEW_link_service_wms": self.NEW_link_service_wms,
             "NEW_link_service_esri": self.NEW_link_service_esri,
             "NEW_link_information": self.NEW_link_information,
+            "NEW_link_metadata": self.NEW_link_metadata,
             "NEW_distribution_format": self.NEW_distribution_format,
             "NEW_topic_categories": self.NEW_topic_categories,
             "NEW_abstract": self.NEW_abstract,
@@ -296,7 +297,6 @@ class UpdateCSW(object):
         similar to simple_element_update, but removed while statement.
         Will single element of record if the element exists.
         Will not create element.
-
         Positional arguments:
         uuid -- the unique id of the record to be updated
         new_value -- the new value supplied from the csv
@@ -895,6 +895,13 @@ class UpdateCSW(object):
             update = self._update_links(uuid, new_link, "information")
             log.info("updated info link")
 
+    def NEW_link_metadata(self, uuid, new_link):
+        if new_link != "" and new_link != "SKIP":
+            update = self._update_links(uuid, new_link, "metadata")
+            log.info("updated metadata link")
+
+
+
     def _delete_link_elementset(self, link):
         onLine = link.getparent().getparent().getparent()
         p = onLine.getparent()
@@ -923,9 +930,7 @@ class UpdateCSW(object):
 #TOPICS AND KEYWORDS
 
     def NEW_topic_categories(self, uuid, new_topic_categories):
-        """
-        This is heinous. I'm sorry.
-        """
+
         cat_list = new_topic_categories.split(self.INNER_DELIMITER)
         log.debug("NEW TOPIC INPUT: " + new_topic_categories)
 
