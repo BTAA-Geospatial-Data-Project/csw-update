@@ -52,6 +52,7 @@ When working with a CSV exported from GeoNetwork, you'll need to either:
 | **Credit**                     | NEW_credit               |
 | **DatasetURI**                 | NEW_dataset_uri          |
 | **Identifier**                 | NEW_identifier           |
+| **Provenance**                 | NEW_provenance           |
     
 
 
@@ -62,6 +63,7 @@ Added the following elements:<br />
 *Credit*<br />
 *Identifier*<br />
 *DataSetURI*<br />
+*Provenance*<br />
 Removed Dublin Core schema option
 
 
