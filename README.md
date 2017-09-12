@@ -54,6 +54,16 @@ When working with a CSV exported from GeoNetwork, you'll need to either:
 
 #Change Log
 <br />
+September 12, 2017<br />
+Added the following elements:<br />
+*Credit*<br />
+*Identifier*<br />
+*DataSetURI*<br />
+*Provenance*<br />
+Removed Dublin Core schema option
+
+
+<br />
 March 20, 2017<br />
 Added the following element:<br />
 *Metadata Link*<br />
