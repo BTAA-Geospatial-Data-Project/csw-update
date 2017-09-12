@@ -98,7 +98,10 @@ class UpdateCSW(object):
 			"NEW_other_citation": self.NEW_other_citation,
 			"NEW_maintenance_note": self.NEW_maintenance_note,
 			"NEW_parent": self.NEW_parent,
-# 			"new_dataset_uri": self.NEW_dataset_uri
+			"NEW_dataset_uri": self.NEW_dataset_uri,
+            "NEW_identifier": self.NEW_identifier,
+            "NEW_provenance": self.NEW_provenance,
+            "NEW_credit": self.NEW_credit
 
         },
 
@@ -150,8 +153,11 @@ class UpdateCSW(object):
             "collective_title": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:citation/gmd:CI_Citation/gmd:collectiveTitle/gco:CharacterString",
             "other_citation": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:citation/gmd:CI_Citation/gmd:otherCitationDetails/gco:CharacterString",
             "maintenance_note": "gmd:metadataMaintenance/gmd:MD_MaintenanceInformation/gmd:maintenanceNote/gco:CharacterString",
-#             "dataset_uri": "gmd:dataSetURI/gco:CharacterString",
-            "parent": "gmd:parentIdentifier/gco:CharacterString"
+            "dataset_uri": "gmd:dataSetURI/gco:CharacterString",
+            "parent": "gmd:parentIdentifier/gco:CharacterString",
+            "identifier": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:citation/gmd:CI_Citation/gmd:identifier/gmd:MD_Identifier/gmd:code/gco:CharacterString",
+            "credit": "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:credit",
+            "provenance": "gmd:metadataMaintenance/gmd:MD_MaintenanceInformation/gmd:updateScopeDescription/gmd:MD_ScopeDescription/gmd:other/gco:CharacterString"
 
         },
 
@@ -167,7 +173,8 @@ class UpdateCSW(object):
             "esri_service": ["ESRI:ArcGIS"],
             "wms_service": ["OGC:WMS"],
             "wfs_service": ["OGC:WFS"],
-            "wcs_service": ["OGC:WCS"]
+            "wcs_service": ["OGC:WCS"],
+            "metadata": ["metadata"]
         }
 
 		#Topic categories.  These need to be spelled and cased as below to register in GeoNetwork
@@ -751,6 +758,16 @@ class UpdateCSW(object):
                 uuid, new_title, element="title")
             log.info("updated title")
 
+    def NEW_identifier(self, uuid, new_identifier):
+        """
+        Updates resource identifier of record
+        """
+        if new_identifier != "" and new_identifier != "SKIP":
+            update = self._simple_element_update(
+                uuid, new_identifier, element="identifier")
+            log.info("updated identifier")
+
+
     def NEW_collective_title(self, uuid, new_collective_title):
         """
         Updates collection of record
@@ -778,6 +795,15 @@ class UpdateCSW(object):
                 uuid, new_other_citation, element="other_citation")
             log.info("updated other citation")
 
+    def NEW_credit(self, uuid, new_credit):
+        """
+        Updates credit
+        """
+        if new_credit != "" and new_credit != "SKIP":
+            update = self._simple_element_update(
+                uuid, new_credit, element="credit")
+            log.info("updated credit")
+
 
     #can update but doesn't create new element
     def NEW_parent(self, uuid, new_parent):
@@ -803,16 +829,27 @@ class UpdateCSW(object):
                 uuid, new_maintenance_note, element="maintenance_note")
             log.info("updated metadata maintenance note")
 
+    def NEW_provenance(self, uuid, new_provenance):
+        """
+        Updates provenance of record
+        """
+        if new_provenance != "" and new_provenance != "SKIP":
+            update = self._simple_element_update(
+                uuid, new_provenance, element="provenance")
+            log.info("updated provenance")
 
-##    doesn't work - says no change even if there is one
-#     def NEW_dataset_uri(self, uuid, dataset_uri):
-#         """
-#         Updates datasetURI of record
-#         """
+
 #         if new_dataset_uri != "" and new_dataset_uri != "SKIP":
 #             update = self._base_element_update(
-#                 uuid, new_dataset_uri, element="dataset_uri")
-#             log.info("updated datasetURI")
+##    doesn't work if not already present - says no change even if there is one
+    def NEW_dataset_uri(self, uuid, new_dataset_uri):
+        """
+        Updates datasetURI of record
+        """
+        if new_dataset_uri != "" and new_dataset_uri != "SKIP":
+            update = self._base_element_update(
+                uuid, new_dataset_uri, element="dataset_uri")
+            log.info("updated datasetURI")
 
 
 
@@ -1348,33 +1385,15 @@ class UpdateCSW(object):
         Sets self.records[uuid] to the result. Returns nothing.
         """
 
-        if self.schema == "iso19139":
-            outschema = "http://www.isotc211.org/2005/gmd"
-            log.debug("get_record_by_id: requesting fresh XML.")
-            self.csw.getrecordbyid(id=[str(uuid)], outputschema=outschema)
-            time.sleep(1)
-            if uuid in self.csw.records:
-                log.debug("get_record_by_id: got the xml")
-                self.records[uuid] = self.csw.records[uuid]
 
-        else:
-            # unused Dublin Core hack for dc:identifiers that are URIs
-            outschema = "http://www.opengis.net/cat/csw/2.0.2"
-            xml_text = """<csw:GetRecords xmlns:csw="http://www.opengis.net/cat/csw/2.0.2" xmlns:ogc="http://www.opengis.net/ogc" service="CSW" version="2.0.2" resultType="results" startPosition="1" maxRecords="10" outputFormat="application/xml" outputSchema="http://www.opengis.net/cat/csw/2.0.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengis.net/cat/csw/2.0.2 http://schemas.opengis.net/csw/2.0.2/CSW-discovery.xsd" xmlns:gmd="http://www.isotc211.org/2005/gmd" xmlns:apiso="http://www.opengis.net/cat/csw/apiso/1.0">
-              <csw:Query typeNames="csw:Record">
-                <csw:ElementSetName>full</csw:ElementSetName>
-                <csw:Constraint version="1.1.0">
-                  <ogc:Filter>
-                    <ogc:PropertyIsLike matchCase="false" wildCard="%" singleChar="_" escapeChar="\">
-                      <ogc:PropertyName>dc:identifier</ogc:PropertyName>
-                      <ogc:Literal>{id}</ogc:Literal>
-                    </ogc:PropertyIsLike>
-                  </ogc:Filter>
-                </csw:Constraint>
-              </csw:Query>
-            </csw:GetRecords>""".format(id=uuid)
-            self.csw.getrecords2(xml=xml_text)
-            self.records[uuid] = self.csw.records.items()[0][1]
+        outschema = "http://www.isotc211.org/2005/gmd"
+        log.debug("get_record_by_id: requesting fresh XML.")
+        self.csw.getrecordbyid(id=[str(uuid)], outputschema=outschema)
+        time.sleep(1)
+        if uuid in self.csw.records:
+            log.debug("get_record_by_id: got the xml")
+            self.records[uuid] = self.csw.records[uuid]
+
 
     def process_spreadsheet(self):
         """
@@ -1400,11 +1419,9 @@ class UpdateCSW(object):
 
             log.debug(self.uuid)
 
-            if "schema" in row:
-                self.schema = row["schema"]
-            else:
-                log.info("No 'schema' column. Defaulting to iso19139.")
-                self.schema = "iso19139"
+
+
+            self.schema = "iso19139"
 
             self.get_record_by_id(self.uuid)
             self.record_etree = self._get_etree_for_record(self.uuid)
@@ -1437,8 +1454,7 @@ class UpdateCSW(object):
 
 def main():
     parser = argparse.ArgumentParser(
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        description=open("README.md", "rU").read())
+        formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument(
         "input_csv",
         help="indicate path to the csv containing the updates")
