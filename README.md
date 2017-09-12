@@ -1,7 +1,7 @@
 # Installation
 If you don't have Pip, [get Pip](https://pip.pypa.io/en/latest/installing.html)!
 
-Either clone the repo or [download as a zip](https://github.com/CIC-Geospatial-Data-Discovery-Project/csw-update/archive/master.zip. Once cloned/downloaded and extracted, execute this command:
+Either clone the repo or download as a zip. Once cloned/downloaded and extracted, execute this command:
 
     pip install -r requirements.txt
 
